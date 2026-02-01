@@ -24,6 +24,9 @@ class MobileCode {
   }
 
   async init() {
+    // Setup viewport handling for keyboard
+    this.setupViewport();
+
     // Check server connectivity first
     const online = await this.checkServer();
 
@@ -51,6 +54,35 @@ class MobileCode {
     } else {
       this.showWelcome();
     }
+  }
+
+  // ─── Viewport Handling (keyboard) ───────────────────────────
+
+  setupViewport() {
+    const updateViewport = () => {
+      const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+      document.documentElement.style.setProperty('--viewport-height', `${vh}px`);
+
+      // Refit terminal when viewport changes
+      if (this.activeSessionId) {
+        const terminal = this.terminals.get(this.activeSessionId);
+        if (terminal) {
+          setTimeout(() => terminal.fitAddon.fit(), 50);
+        }
+      }
+    };
+
+    // Initial update
+    updateViewport();
+
+    // Listen for viewport changes (keyboard show/hide)
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', updateViewport);
+      window.visualViewport.addEventListener('scroll', updateViewport);
+    }
+
+    // Fallback for browsers without visualViewport
+    window.addEventListener('resize', updateViewport);
   }
 
   // ─── Server Connectivity ───────────────────────────────────
