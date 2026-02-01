@@ -37,13 +37,16 @@ html, body {
 }
 
 #app {
-  display: flex;
-  flex-direction: column;
   height: 100%;
+  overflow: hidden;
 }
 
 /* Top Bar */
 #topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -52,6 +55,7 @@ html, body {
   background: var(--bg-light);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
+  z-index: 100;
 }
 
 .topbar-left, .topbar-right {
@@ -147,8 +151,11 @@ html, body {
 
 /* Main Content */
 #main-content {
-  flex: 1;
-  position: relative;
+  position: fixed;
+  top: var(--topbar-height);
+  left: 0;
+  right: 0;
+  bottom: var(--statusbar-height);
   overflow: hidden;
 }
 
@@ -335,6 +342,10 @@ html, body {
 
 /* Status Bar */
 #statusbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -344,6 +355,7 @@ html, body {
   border-top: 1px solid var(--border);
   font-size: 11px;
   flex-shrink: 0;
+  z-index: 100;
 }
 
 .status-left, .status-right {
