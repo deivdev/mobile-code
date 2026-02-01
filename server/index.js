@@ -1,6 +1,7 @@
 const express = require('express');
 const http = require('http');
 const path = require('path');
+const { exec } = require('child_process');
 const { setupWebSocket } = require('./websocket');
 const reposApi = require('./api/repos');
 const sessionsApi = require('./api/sessions');

@@ -1,5 +1,13 @@
 # mobile-code
 
+```
+                 _     _ _                          _
+  _ __ ___   ___| |__ (_) | ___        ___ ___   __| | ___
+ | '_ ` _ \ / _ \ '_ \| | |/ _ \_____ / __/ _ \ / _` |/ _ \
+ | | | | | | (_) | |_) | | |  __/_____| (_| (_) | (_| |  __/
+ |_| |_| |_|\___/|_.__/|_|_|\___|      \___\___/ \__,_|\___|
+```
+
 AI-powered coding assistant on your phone. Run Claude Code, OpenCode, or Codex directly from Android using Termux.
 
 ## Install
@@ -15,6 +23,12 @@ Then open browser → `localhost:3000`
 ---
 
 ## Start (after install)
+
+**Option 1: PWA (Recommended)**
+
+After installing, add to home screen from your browser for a native app experience. The PWA works offline and launches instantly.
+
+**Option 2: Manual**
 
 ```bash
 cd ~/mobile-code && npm start

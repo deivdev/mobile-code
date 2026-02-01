@@ -11,9 +11,28 @@ class MobileCode {
     this.terminals = new Map();
     this.paletteItems = [];
     this.paletteIndex = 0;
+    this.serverOnline = false;
+    this.retryCount = 0;
+    this.maxRetries = 3;
+
+    // Modifier keys state
+    this.modifiers = { ctrl: false, alt: false };
+
+    // Gesture state
+    this.touchStart = null;
+    this.gestureThreshold = 50;
   }
 
   async init() {
+    // Check server connectivity first
+    const online = await this.checkServer();
+
+    if (!online) {
+      this.showOfflineScreen();
+      this.startServerCheck();
+      return;
+    }
+
     await this.loadSettings();
     await this.loadTools();
     await this.loadRepos();
@@ -31,6 +50,126 @@ class MobileCode {
       }
     } else {
       this.showWelcome();
+    }
+  }
+
+  // ─── Server Connectivity ───────────────────────────────────
+
+  async checkServer() {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 3000);
+
+      const response = await fetch('/api/health', {
+        signal: controller.signal,
+        cache: 'no-store'
+      });
+      clearTimeout(timeout);
+
+      this.serverOnline = response.ok;
+      return this.serverOnline;
+    } catch (e) {
+      this.serverOnline = false;
+      return false;
+    }
+  }
+
+  startServerCheck() {
+    // Check every 2 seconds for server availability
+    this.serverCheckInterval = setInterval(async () => {
+      const online = await this.checkServer();
+      if (online) {
+        clearInterval(this.serverCheckInterval);
+        this.hideOfflineScreen();
+        this.init();
+      }
+    }, 2000);
+  }
+
+  showOfflineScreen() {
+    const existing = document.getElementById('offline-view');
+    if (existing) return;
+
+    const isTermux = /Android/i.test(navigator.userAgent);
+    const isPWA = window.matchMedia('(display-mode: standalone)').matches ||
+                  window.navigator.standalone === true;
+
+    const offlineView = document.createElement('div');
+    offlineView.id = 'offline-view';
+    offlineView.className = 'view active';
+    offlineView.innerHTML = `
+      <div class="offline-content">
+        <div class="offline-icon">⚡</div>
+        <h2 class="offline-title">Server Not Running</h2>
+        <p class="offline-subtitle">The Mobile Code server isn't reachable</p>
+
+        <div class="offline-spinner">
+          <div class="spinner"></div>
+          <span>Checking for server...</span>
+        </div>
+
+        ${isTermux || isPWA ? `
+        <div class="offline-instructions">
+          <p class="instruction-title">To start the server:</p>
+          <div class="instruction-steps">
+            <div class="step">
+              <span class="step-num">1</span>
+              <span>Open <strong>Termux</strong> app</span>
+            </div>
+            <div class="step">
+              <span class="step-num">2</span>
+              <span>Run: <code>cd ~/mobile-code && npm start</code></span>
+            </div>
+          </div>
+
+          <div class="offline-tip">
+            <strong>Tip:</strong> Set up auto-start with Termux:Boot
+            <br><code>~/.termux/boot/mobile-code</code>
+          </div>
+        </div>
+        ` : `
+        <div class="offline-instructions">
+          <p class="instruction-title">Start the server:</p>
+          <code class="instruction-code">npm start</code>
+        </div>
+        `}
+
+        <button class="btn btn-primary offline-retry" onclick="app.retryConnection()">
+          Retry Now
+        </button>
+      </div>
+    `;
+
+    // Hide other views
+    document.getElementById('welcome-view')?.classList.add('hidden');
+    document.getElementById('terminal-view')?.classList.add('hidden');
+
+    document.getElementById('main-content').appendChild(offlineView);
+  }
+
+  hideOfflineScreen() {
+    const offlineView = document.getElementById('offline-view');
+    if (offlineView) {
+      offlineView.remove();
+    }
+  }
+
+  async retryConnection() {
+    const btn = document.querySelector('.offline-retry');
+    const spinner = document.querySelector('.offline-spinner span');
+
+    if (btn) btn.disabled = true;
+    if (spinner) spinner.textContent = 'Connecting...';
+
+    const online = await this.checkServer();
+
+    if (online) {
+      clearInterval(this.serverCheckInterval);
+      this.hideOfflineScreen();
+      this.init();
+    } else {
+      if (btn) btn.disabled = false;
+      if (spinner) spinner.textContent = 'Server not found. Retrying...';
     }
   }
 
@@ -75,6 +214,8 @@ class MobileCode {
     this.ws = new WebSocket(`${protocol}//${location.host}`);
 
     this.ws.onopen = () => {
+      this.serverOnline = true;
+      this.updateConnectionIndicator();
       if (this.activeSessionId) {
         this.attachToSession(this.activeSessionId);
       }
@@ -86,8 +227,24 @@ class MobileCode {
     };
 
     this.ws.onclose = () => {
+      this.serverOnline = false;
+      this.updateConnectionIndicator();
       setTimeout(() => this.connectWebSocket(), 2000);
     };
+  }
+
+  updateConnectionIndicator() {
+    const indicator = document.getElementById('session-indicator');
+    if (!indicator) return;
+
+    if (!this.serverOnline) {
+      indicator.className = 'indicator stopped';
+      indicator.title = 'Server offline';
+    } else {
+      const active = this.sessions.find(s => s.id === this.activeSessionId);
+      indicator.className = 'indicator' + (active?.status === 'stopped' ? ' stopped' : '');
+      indicator.title = active?.status === 'stopped' ? 'Session stopped' : 'Connected';
+    }
   }
 
   handleWsMessage(msg) {
@@ -370,11 +527,7 @@ class MobileCode {
     });
 
     // Update indicator
-    const indicator = document.getElementById('session-indicator');
-    const active = this.sessions.find(s => s.id === this.activeSessionId);
-    if (active) {
-      indicator.className = 'indicator' + (active.status === 'stopped' ? ' stopped' : '');
-    }
+    this.updateConnectionIndicator();
   }
 
   updateRecentRepos() {
@@ -884,6 +1037,180 @@ class MobileCode {
         if (primaryBtn) primaryBtn.click();
       }
     });
+
+    // Key toolbar
+    this.bindKeyToolbar();
+
+    // Touch gestures
+    this.bindGestures();
+  }
+
+  // ─── Key Toolbar ────────────────────────────────────────────
+
+  bindKeyToolbar() {
+    const toolbar = document.getElementById('key-toolbar');
+    if (!toolbar) return;
+
+    toolbar.querySelectorAll('.key-btn').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.preventDefault();
+
+        if (btn.dataset.modifier) {
+          // Toggle modifier key
+          this.toggleModifier(btn.dataset.modifier);
+        } else if (btn.dataset.key) {
+          // Send key to terminal
+          this.sendKey(btn.dataset.key);
+        }
+      });
+    });
+  }
+
+  toggleModifier(mod) {
+    this.modifiers[mod] = !this.modifiers[mod];
+
+    // Update button visual state
+    const btn = document.querySelector(`.key-btn[data-modifier="${mod}"]`);
+    if (btn) {
+      btn.classList.toggle('active', this.modifiers[mod]);
+    }
+  }
+
+  clearModifiers() {
+    this.modifiers.ctrl = false;
+    this.modifiers.alt = false;
+
+    document.querySelectorAll('.key-btn.modifier').forEach(btn => {
+      btn.classList.remove('active');
+    });
+  }
+
+  sendKey(key) {
+    const terminal = this.terminals.get(this.activeSessionId);
+    if (!terminal) return;
+
+    let data = '';
+
+    // Handle special keys
+    switch (key) {
+      case 'Escape':
+        data = '\x1b';
+        break;
+      case 'Tab':
+        data = '\t';
+        break;
+      case 'ArrowUp':
+        data = '\x1b[A';
+        break;
+      case 'ArrowDown':
+        data = '\x1b[B';
+        break;
+      case 'ArrowRight':
+        data = '\x1b[C';
+        break;
+      case 'ArrowLeft':
+        data = '\x1b[D';
+        break;
+      default:
+        // Handle Ctrl+key combinations
+        if (this.modifiers.ctrl && key.length === 1) {
+          const code = key.toUpperCase().charCodeAt(0) - 64;
+          if (code > 0 && code < 32) {
+            data = String.fromCharCode(code);
+          }
+        } else if (this.modifiers.alt && key.length === 1) {
+          data = '\x1b' + key;
+        } else {
+          data = key;
+        }
+    }
+
+    if (data) {
+      this.sendInput(this.activeSessionId, data);
+      terminal.term.focus();
+    }
+
+    // Clear modifiers after sending
+    this.clearModifiers();
+  }
+
+  // ─── Touch Gestures ─────────────────────────────────────────
+
+  bindGestures() {
+    const container = document.getElementById('terminal-container');
+    if (!container) return;
+
+    container.addEventListener('touchstart', e => {
+      if (e.touches.length === 1) {
+        this.touchStart = {
+          x: e.touches[0].clientX,
+          y: e.touches[0].clientY,
+          time: Date.now()
+        };
+      }
+    }, { passive: true });
+
+    container.addEventListener('touchend', e => {
+      if (!this.touchStart) return;
+
+      const touch = e.changedTouches[0];
+      const dx = touch.clientX - this.touchStart.x;
+      const dy = touch.clientY - this.touchStart.y;
+      const dt = Date.now() - this.touchStart.time;
+
+      // Must be a quick swipe (< 300ms)
+      if (dt > 300) {
+        this.touchStart = null;
+        return;
+      }
+
+      const absDx = Math.abs(dx);
+      const absDy = Math.abs(dy);
+
+      // Horizontal swipe
+      if (absDx > this.gestureThreshold && absDx > absDy * 1.5) {
+        if (dx < 0) {
+          // Swipe left → ESC
+          this.sendKey('Escape');
+          this.showGestureFeedback('ESC');
+        } else {
+          // Swipe right → TAB
+          this.sendKey('Tab');
+          this.showGestureFeedback('TAB');
+        }
+      }
+      // Vertical swipe
+      else if (absDy > this.gestureThreshold && absDy > absDx * 1.5) {
+        if (dy > 0) {
+          // Swipe down → Ctrl+C
+          this.sendInput(this.activeSessionId, '\x03');
+          this.showGestureFeedback('Ctrl+C');
+        } else {
+          // Swipe up → Ctrl+Z
+          this.sendInput(this.activeSessionId, '\x1a');
+          this.showGestureFeedback('Ctrl+Z');
+        }
+      }
+
+      this.touchStart = null;
+    }, { passive: true });
+  }
+
+  showGestureFeedback(text) {
+    let indicator = document.querySelector('.gesture-indicator');
+
+    if (!indicator) {
+      indicator = document.createElement('div');
+      indicator.className = 'gesture-indicator';
+      document.body.appendChild(indicator);
+    }
+
+    indicator.textContent = text;
+    indicator.classList.add('show');
+
+    setTimeout(() => {
+      indicator.classList.remove('show');
+    }, 500);
   }
 
   // ─── Utilities ───────────────────────────────────────────
