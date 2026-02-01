@@ -3,6 +3,7 @@ const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
 const ptyManager = require('../services/pty-manager');
 const repoManager = require('../services/repo-manager');
+const toolDetector = require('../services/tool-detector');
 
 // List all sessions
 router.get('/', (req, res) => {
@@ -18,6 +19,15 @@ router.get('/', (req, res) => {
 router.post('/', (req, res) => {
   try {
     const { repoId, tool, cols, rows } = req.body;
+
+    // Validate tool is available
+    if (tool && !toolDetector.isToolAvailable(tool)) {
+      const toolInfo = toolDetector.getToolInfo(tool);
+      const installHint = toolInfo?.installCmd ? `\nInstall with: ${toolInfo.installCmd}` : '';
+      return res.status(400).json({
+        error: `Tool "${tool}" is not installed.${installHint}`
+      });
+    }
 
     // Get working directory
     let cwd = require('os').homedir();

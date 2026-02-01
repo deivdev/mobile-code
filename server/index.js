@@ -5,6 +5,7 @@ const { setupWebSocket } = require('./websocket');
 const reposApi = require('./api/repos');
 const sessionsApi = require('./api/sessions');
 const settingsApi = require('./api/settings');
+const toolsApi = require('./api/tools');
 const config = require('./services/config');
 
 const app = express();
@@ -22,6 +23,7 @@ app.use(express.static(path.join(__dirname, '../web')));
 app.use('/api/repos', reposApi);
 app.use('/api/sessions', sessionsApi);
 app.use('/api/settings', settingsApi);
+app.use('/api/tools', toolsApi);
 
 // Health check
 app.get('/api/health', (req, res) => {

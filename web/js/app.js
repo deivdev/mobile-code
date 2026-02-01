@@ -6,6 +6,7 @@ class MobileCode {
     this.repos = [];
     this.activeSessionId = null;
     this.settings = null;
+    this.tools = { available: [], unavailable: [], defaultTool: 'shell' };
     this.ws = null;
     this.terminals = new Map();
     this.paletteItems = [];
@@ -14,6 +15,7 @@ class MobileCode {
 
   async init() {
     await this.loadSettings();
+    await this.loadTools();
     await this.loadRepos();
     await this.loadSessions();
 
@@ -55,6 +57,14 @@ class MobileCode {
       this.sessions = await API.sessions.list();
     } catch (e) {
       this.sessions = [];
+    }
+  }
+
+  async loadTools() {
+    try {
+      this.tools = await API.tools.list();
+    } catch (e) {
+      this.tools = { available: [{ id: 'shell', name: 'Bash Shell' }], unavailable: [], defaultTool: 'shell' };
     }
   }
 
@@ -545,6 +555,25 @@ class MobileCode {
       `<option value="${r.id}">${this.escapeHtml(r.name)}</option>`
     ).join('');
 
+    // Build tool options from available tools
+    const toolOptions = this.tools.available.map(t =>
+      `<option value="${t.id === 'shell' ? '' : t.id}">${this.escapeHtml(t.name)}</option>`
+    ).join('');
+
+    // Build unavailable tools hint
+    let unavailableHint = '';
+    if (this.tools.unavailable.length > 0) {
+      const hints = this.tools.unavailable.map(t =>
+        `<div class="install-hint"><code>${this.escapeHtml(t.installCmd)}</code><span class="hint-label">${this.escapeHtml(t.name)}</span></div>`
+      ).join('');
+      unavailableHint = `
+        <div class="form-group">
+          <label class="form-label form-label-muted">Install more tools:</label>
+          ${hints}
+        </div>
+      `;
+    }
+
     this.showModal('New Session', `
       <div class="form-group">
         <label class="form-label">Repository</label>
@@ -556,19 +585,19 @@ class MobileCode {
       <div class="form-group">
         <label class="form-label">Tool</label>
         <select id="new-tool" class="form-select">
-          <option value="claude-code">Claude Code</option>
-          <option value="opencode">OpenCode</option>
-          <option value="codex">Codex</option>
-          <option value="">Bash Shell</option>
+          ${toolOptions}
         </select>
       </div>
+      ${unavailableHint}
       <div class="form-actions">
         <button class="btn" onclick="app.hideModal()">Cancel</button>
         <button class="btn btn-primary" onclick="app.submitNewSession()">Start</button>
       </div>
     `);
 
-    document.getElementById('new-tool').value = this.settings?.defaultTool || 'claude-code';
+    // Set default tool
+    const defaultValue = this.tools.defaultTool === 'shell' ? '' : this.tools.defaultTool;
+    document.getElementById('new-tool').value = defaultValue;
   }
 
   submitNewSession() {
@@ -609,14 +638,16 @@ class MobileCode {
   }
 
   showSettingsModal() {
+    // Build tool options from available tools
+    const toolOptions = this.tools.available.map(t =>
+      `<option value="${t.id === 'shell' ? '' : t.id}">${this.escapeHtml(t.name)}</option>`
+    ).join('');
+
     this.showModal('Settings', `
       <div class="form-group">
         <label class="form-label">Default tool</label>
         <select id="setting-tool" class="form-select">
-          <option value="claude-code">Claude Code</option>
-          <option value="opencode">OpenCode</option>
-          <option value="codex">Codex</option>
-          <option value="">Bash Shell</option>
+          ${toolOptions}
         </select>
       </div>
       <div class="form-group">
@@ -629,7 +660,8 @@ class MobileCode {
       </div>
     `);
 
-    document.getElementById('setting-tool').value = this.settings?.defaultTool || 'claude-code';
+    const defaultValue = this.settings?.defaultTool === 'shell' ? '' : (this.settings?.defaultTool || '');
+    document.getElementById('setting-tool').value = defaultValue;
   }
 
   async submitSettings() {

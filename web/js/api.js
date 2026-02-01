@@ -90,6 +90,17 @@ const API = {
     }
   },
 
+  // Tools
+  tools: {
+    list() {
+      return API.request('GET', '/tools');
+    },
+
+    get(id) {
+      return API.request('GET', `/tools/${id}`);
+    }
+  },
+
   // Health check
   health() {
     return API.request('GET', '/health');
