@@ -162,8 +162,13 @@ html, body {
   top: var(--topbar-height);
   left: 0;
   right: 0;
-  bottom: calc(var(--toolbar-height) + var(--statusbar-height));
+  bottom: var(--statusbar-height);
   overflow: hidden;
+}
+
+/* When keyboard is visible, make room for toolbar */
+body.keyboard-visible #main-content {
+  bottom: calc(var(--toolbar-height) + var(--statusbar-height));
 }
 
 .view {
@@ -347,13 +352,13 @@ html, body {
   font-size: 11px;
 }
 
-/* Key Toolbar (mobile) */
+/* Key Toolbar (mobile) - only visible with keyboard */
 #key-toolbar {
   position: absolute;
   bottom: var(--statusbar-height);
   left: 0;
   right: 0;
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: center;
   gap: 4px;
@@ -364,6 +369,10 @@ html, body {
   z-index: 100;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+}
+
+#key-toolbar.visible {
+  display: flex;
 }
 
 #key-toolbar::-webkit-scrollbar {
@@ -417,13 +426,13 @@ html, body {
   flex-shrink: 0;
 }
 
-/* Hide toolbar on desktop */
+/* Never show toolbar on desktop (even with keyboard) */
 @media (min-width: 768px) and (hover: hover) {
   #key-toolbar {
-    display: none;
+    display: none !important;
   }
 
-  #main-content {
+  body.keyboard-visible #main-content {
     bottom: var(--statusbar-height);
   }
 }

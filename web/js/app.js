@@ -59,9 +59,27 @@ class MobileCode {
   // ─── Viewport Handling (keyboard) ───────────────────────────
 
   setupViewport() {
+    // Store initial viewport height to detect keyboard
+    const initialHeight = window.innerHeight;
+    const keyboardThreshold = 150; // Keyboard is ~150px+ tall
+
     const updateViewport = () => {
       const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
       document.documentElement.style.setProperty('--viewport-height', `${vh}px`);
+
+      // Detect keyboard: viewport shrunk significantly
+      const heightDiff = initialHeight - vh;
+      const keyboardVisible = heightDiff > keyboardThreshold;
+
+      // Toggle keyboard visibility class and toolbar
+      const toolbar = document.getElementById('key-toolbar');
+      if (keyboardVisible) {
+        document.body.classList.add('keyboard-visible');
+        toolbar?.classList.add('visible');
+      } else {
+        document.body.classList.remove('keyboard-visible');
+        toolbar?.classList.remove('visible');
+      }
 
       // Refit terminal when viewport changes
       if (this.activeSessionId) {

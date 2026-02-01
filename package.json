@@ -26,9 +26,6 @@
     "uuid": "^9.0.1",
     "ws": "^8.16.0"
   },
-  "optionalDependencies": {
-    "node-pty": "^1.0.0"
-  },
   "engines": {
     "node": ">=18.0.0"
   }
