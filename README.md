@@ -15,7 +15,7 @@ AI-powered coding assistant on your phone. Run Claude Code, OpenCode, or Codex d
 Open Termux, tap and hold to paste:
 
 ```bash
-pkg install -y git nodejs python make clang && git clone https://github.com/deivdev/mobile-code.git ~/mobile-code && cd ~/mobile-code && npm install && npm start
+pkg install -y git nodejs && git clone https://github.com/deivdev/mobile-code.git ~/mobile-code && cd ~/mobile-code && npm install && npm start
 ```
 
 Then open browser → `localhost:3000`
