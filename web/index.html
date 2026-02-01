@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0d1117">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Mobile Code</title>
+  <link rel="stylesheet" href="/lib/xterm.css">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Top Bar -->
+    <header id="topbar">
+      <div class="topbar-left">
+        <span class="app-title">mobile-code</span>
+        <span class="separator">│</span>
+        <div id="tabs"></div>
+      </div>
+      <div class="topbar-right">
+        <span id="session-indicator" class="indicator"></span>
+        <button id="new-tab-btn" class="text-btn" title="New session (Ctrl+T)">[+]</button>
+        <button id="menu-btn" class="text-btn" title="Menu (Ctrl+K)">[≡]</button>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main id="main-content">
+      <!-- Terminal View -->
+      <div id="terminal-view" class="view hidden">
+        <div id="terminal-container"></div>
+      </div>
+
+      <!-- Welcome View (shown when no sessions) -->
+      <div id="welcome-view" class="view active">
+        <div class="welcome-content">
+          <pre class="ascii-logo">
+                 _     _ _                        _
+  _ __ ___   ___ | |__ (_) | ___        ___ ___  __| | ___
+ | '_ ` _ \ / _ \| '_ \| | |/ _ \_____ / __/ _ \/ _` |/ _ \
+ | | | | | | (_) | |_) | | |  __/_____| (_| (_) | (_| |  __/
+ |_| |_| |_|\___/|_.__/|_|_|\___|      \___\___/ \__,_|\___|
+          </pre>
+          <p class="welcome-subtitle">AI-powered coding on mobile</p>
+
+          <div class="quick-actions">
+            <div class="action-item" data-action="new-session">
+              <span class="action-key">n</span>
+              <span class="action-label">New session</span>
+            </div>
+            <div class="action-item" data-action="clone-repo">
+              <span class="action-key">c</span>
+              <span class="action-label">Clone repository</span>
+            </div>
+            <div class="action-item" data-action="open-repo">
+              <span class="action-key">o</span>
+              <span class="action-label">Open repository</span>
+            </div>
+            <div class="action-item" data-action="settings">
+              <span class="action-key">s</span>
+              <span class="action-label">Settings</span>
+            </div>
+            <div class="action-item" data-action="help">
+              <span class="action-key">?</span>
+              <span class="action-label">Help</span>
+            </div>
+          </div>
+
+          <div id="recent-repos" class="recent-section hidden">
+            <p class="section-title">─── Recent Repositories ───</p>
+            <div id="recent-list"></div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Status Bar -->
+    <footer id="statusbar">
+      <div class="status-left">
+        <span id="status-mode">NORMAL</span>
+        <span class="separator">│</span>
+        <span id="status-cwd">~</span>
+      </div>
+      <div class="status-right">
+        <span id="status-tool"></span>
+        <span class="separator">│</span>
+        <span id="status-session"></span>
+      </div>
+    </footer>
+
+    <!-- Command Palette -->
+    <div id="palette-overlay" class="overlay hidden">
+      <div id="palette" class="palette">
+        <input type="text" id="palette-input" placeholder="Type a command..." autocomplete="off" spellcheck="false">
+        <div id="palette-results"></div>
+      </div>
+    </div>
+
+    <!-- Modal -->
+    <div id="modal-overlay" class="overlay hidden">
+      <div id="modal" class="modal">
+        <div id="modal-header" class="modal-header"></div>
+        <div id="modal-body" class="modal-body"></div>
+      </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="toast hidden"></div>
+  </div>
+
+  <script src="/lib/xterm.min.js"></script>
+  <script src="/lib/xterm-addon-fit.min.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/terminal.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>

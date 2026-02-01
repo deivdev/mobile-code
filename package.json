@@ -1,0 +1,33 @@
+{
+  "name": "mobile-code",
+  "version": "0.1.0",
+  "description": "Mobile-first web UI for running AI coding assistants on Android via Termux",
+  "main": "server/index.js",
+  "bin": {
+    "mobile-code": "./bin/mobile-code.js"
+  },
+  "scripts": {
+    "start": "node bin/mobile-code.js",
+    "dev": "node bin/mobile-code.js --port 3000"
+  },
+  "keywords": [
+    "termux",
+    "mobile",
+    "coding",
+    "claude-code",
+    "terminal",
+    "android"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "node-pty": "^1.0.0",
+    "simple-git": "^3.22.0",
+    "uuid": "^9.0.1",
+    "ws": "^8.16.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
