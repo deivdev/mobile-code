@@ -104,10 +104,16 @@ function getToolInfo(toolId) {
   return TOOLS[toolId] || null;
 }
 
+function clearCache() {
+  toolCache = null;
+  cacheTime = 0;
+}
+
 module.exports = {
   detectTools,
   getDefaultTool,
   isToolAvailable,
   getToolInfo,
+  clearCache,
   TOOLS
 };

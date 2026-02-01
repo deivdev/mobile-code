@@ -560,15 +560,18 @@ class MobileCode {
       `<option value="${t.id === 'shell' ? '' : t.id}">${this.escapeHtml(t.name)}</option>`
     ).join('');
 
-    // Build unavailable tools hint
+    // Build unavailable tools with install buttons
     let unavailableHint = '';
     if (this.tools.unavailable.length > 0) {
       const hints = this.tools.unavailable.map(t =>
-        `<div class="install-hint"><code>${this.escapeHtml(t.installCmd)}</code><span class="hint-label">${this.escapeHtml(t.name)}</span></div>`
+        `<div class="install-hint">
+          <span class="hint-name">${this.escapeHtml(t.name)}</span>
+          <button class="btn-install" data-tool="${t.id}" onclick="app.installTool('${t.id}')">Install</button>
+        </div>`
       ).join('');
       unavailableHint = `
         <div class="form-group">
-          <label class="form-label form-label-muted">Install more tools:</label>
+          <label class="form-label form-label-muted">Install AI tools:</label>
           ${hints}
         </div>
       `;
@@ -701,6 +704,44 @@ class MobileCode {
     }));
 
     this.showPalette(items);
+  }
+
+  installTool(toolId) {
+    const tool = this.tools.unavailable.find(t => t.id === toolId);
+    if (!tool) return;
+
+    this.showModal(`Installing ${tool.name}`, `
+      <div class="install-output" id="install-output"></div>
+      <div class="install-status" id="install-status">
+        <span class="spinner"></span> Installing...
+      </div>
+    `);
+
+    const output = document.getElementById('install-output');
+    const status = document.getElementById('install-status');
+
+    API.tools.install(
+      toolId,
+      // onOutput
+      (text) => {
+        output.textContent += text;
+        output.scrollTop = output.scrollHeight;
+      },
+      // onComplete
+      async (result) => {
+        if (result.success) {
+          status.innerHTML = '<span class="success">Installed successfully!</span>';
+          this.toast(`${tool.name} installed!`, 'success');
+          // Reload tools
+          await this.loadTools();
+          // Close modal after a moment
+          setTimeout(() => this.hideModal(), 1500);
+        } else {
+          status.innerHTML = `<span class="error">Installation failed (code ${result.code || 'unknown'})</span>`;
+          this.toast('Installation failed', 'error');
+        }
+      }
+    );
   }
 
   // ─── Toast ───────────────────────────────────────────────

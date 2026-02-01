@@ -505,23 +505,77 @@ html, body {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 6px 10px;
+  padding: 8px 10px;
   margin-top: 6px;
   background: var(--bg);
-  border: 1px dashed var(--border);
+  border: 1px solid var(--border);
   border-radius: 4px;
-  font-size: 11px;
+  font-size: 12px;
 }
 
-.install-hint code {
-  color: var(--yellow);
+.install-hint .hint-name {
+  color: var(--text);
+}
+
+.btn-install {
+  padding: 4px 12px;
+  background: var(--accent);
+  border: none;
+  border-radius: 4px;
+  color: var(--bg);
   font-family: var(--font-mono);
-  user-select: all;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
 }
 
-.install-hint .hint-label {
+.btn-install:hover {
+  background: var(--accent-dim);
+}
+
+/* Install modal styles */
+.install-output {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
   color: var(--text-dim);
-  font-size: 10px;
+  height: 200px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.install-status {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.install-status .spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.install-status .success {
+  color: var(--green);
+}
+
+.install-status .error {
+  color: var(--red);
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 .form-input {

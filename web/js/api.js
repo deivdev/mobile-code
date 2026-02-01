@@ -98,6 +98,51 @@ const API = {
 
     get(id) {
       return API.request('GET', `/tools/${id}`);
+    },
+
+    // Install a tool with streaming output
+    install(id, onOutput, onComplete) {
+      const eventSource = new EventSource(`${API.baseUrl}/tools/${id}/install`);
+
+      // Use POST via fetch to initiate, but we need SSE for streaming
+      // So we'll do a hybrid approach
+      fetch(`${API.baseUrl}/tools/${id}/install`, { method: 'POST' })
+        .then(response => {
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+
+          function read() {
+            reader.read().then(({ done, value }) => {
+              if (done) return;
+
+              const text = decoder.decode(value);
+              const lines = text.split('\n');
+
+              for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                  try {
+                    const event = JSON.parse(line.slice(6));
+                    if (event.type === 'output') {
+                      onOutput?.(event.data);
+                    } else if (event.type === 'complete') {
+                      onComplete?.(event.data);
+                    } else if (event.type === 'error') {
+                      onOutput?.(`Error: ${event.data}\n`);
+                      onComplete?.({ success: false, error: event.data });
+                    }
+                  } catch (e) {}
+                }
+              }
+
+              read();
+            });
+          }
+
+          read();
+        })
+        .catch(err => {
+          onComplete?.({ success: false, error: err.message });
+        });
     }
   },
 
