@@ -402,13 +402,6 @@ class Nomacode {
     term.attachCustomKeyEventHandler(e => {
       if (e.type !== 'keydown') return true;
 
-      // Shift+Alt+Tab: Next session
-      if (e.shiftKey && e.altKey && !e.ctrlKey && !e.metaKey && e.key === 'Tab') {
-        e.preventDefault();
-        this.nextSession();
-        return false;
-      }
-
       if (e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey) {
         // Shift+N: New session
         if (e.key === 'N') {
@@ -432,12 +425,6 @@ class Nomacode {
         if (e.key === 'K') {
           e.preventDefault();
           this.showPalette();
-          return false;
-        }
-        // Shift+Tab: Previous session
-        if (e.key === 'Tab') {
-          e.preventDefault();
-          this.prevSession();
           return false;
         }
         // Shift+1-9: Jump to session by number
@@ -1094,13 +1081,6 @@ class Nomacode {
       if (e.target.tagName === 'INPUT' && e.target.id !== 'palette-input') return;
       if (e.target.tagName === 'SELECT') return;
 
-      // Shift+Alt+Tab: Next session
-      if (e.shiftKey && e.altKey && !e.ctrlKey && !e.metaKey && e.key === 'Tab') {
-        e.preventDefault();
-        this.nextSession();
-        return;
-      }
-
       // Shift-based shortcuts
       if (e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey) {
         // Shift+N: New session
@@ -1128,13 +1108,6 @@ class Nomacode {
         if (e.key === 'K') {
           e.preventDefault();
           this.showPalette();
-          return;
-        }
-
-        // Shift+Tab: Previous session
-        if (e.key === 'Tab') {
-          e.preventDefault();
-          this.prevSession();
           return;
         }
 
