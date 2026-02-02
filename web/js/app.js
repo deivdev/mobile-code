@@ -891,6 +891,17 @@ class Nomacode {
         <button class="btn btn-primary" onclick="app.submitClone()">Clone</button>
       </div>
     `);
+
+    // Auto-fill local name from URL
+    document.getElementById('clone-url').addEventListener('input', e => {
+      const url = e.target.value.trim();
+      const nameInput = document.getElementById('clone-name');
+      // Extract repo name from URL (handles .git suffix and trailing slashes)
+      const match = url.match(/\/([^\/]+?)(\.git)?\/?$/);
+      if (match && !nameInput.value) {
+        nameInput.value = match[1];
+      }
+    });
   }
 
   async submitClone() {
