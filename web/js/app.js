@@ -414,6 +414,11 @@ class Nomacode {
 
     const fitAddon = new FitAddon.FitAddon();
     term.loadAddon(fitAddon);
+
+    // Web links addon - makes URLs clickable (opens in browser on tap)
+    const webLinksAddon = new WebLinksAddon.WebLinksAddon();
+    term.loadAddon(webLinksAddon);
+
     term.open(wrapper);
     fitAddon.fit();
 

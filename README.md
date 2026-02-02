@@ -8,7 +8,13 @@
        >> THE MOBILE NOMAD IDE <<
 ```
 
+> **My first open source project ever!** Feedback and contributions welcome.
+
 Code anywhere, like a local. Run Claude Code, OpenCode, or Codex directly from Android using Termux.
+
+## Requirements
+
+**Termux** is required. Download from [F-Droid](https://f-droid.org/packages/com.termux/) (recommended) or Google Play.
 
 ## Install
 
@@ -34,13 +40,21 @@ Or just tap the Nomacode icon on your home screen.
 
 | Key | Action |
 |-----|--------|
-| `Ctrl+K` | Command palette |
-| `Ctrl+T` | New session |
-| `Ctrl+W` | Close session |
-| `Alt+1-9` | Switch to session |
-| `n` | New session (welcome) |
-| `c` | Clone repo (welcome) |
-| `o` | Open repo (welcome) |
+| `Shift+K` | Command palette |
+| `Shift+N` | New session |
+| `Shift+W` | Close session |
+| `Shift+O` | Open repository |
+| `Shift+C` | Clone repository |
+| `Shift+1-9` | Switch to session |
+
+### Touch Gestures
+
+| Gesture | Action |
+|---------|--------|
+| Swipe left | ESC |
+| Swipe right | TAB |
+| Swipe down | Ctrl+C |
+| Swipe up | Ctrl+Z |
 
 ## Features
 
@@ -49,6 +63,31 @@ Or just tap the Nomacode icon on your home screen.
 - Run Claude Code, OpenCode, Codex
 - Multiple sessions with tabs
 - Keyboard-driven interface
+- Touch gestures for common keys
+
+## Roadmap
+
+### iOS Support
+
+Currently Nomacode requires Termux, which is Android-only. iOS implementation ideas welcome:
+
+- **iSH** - Linux shell emulator for iOS (Alpine-based, limited but functional)
+- **a]shell** - Local terminal with SSH, could potentially run Node.js
+- **Jailbreak options** - NewTerm or similar for jailbroken devices
+- **Self-hosted server** - Run Nomacode server on a VPS/Raspberry Pi, connect from iOS Safari
+- **Native iOS app** - WebSocket client that connects to a remote Nomacode server
+
+Have ideas? Open an issue or PR.
+
+### Community Standards
+
+Planning to implement all GitHub community standards:
+
+- [ ] Code of Conduct
+- [ ] Contributing guidelines
+- [ ] Issue templates
+- [ ] Pull request templates
+- [ ] Security policy
 
 ## License
 
