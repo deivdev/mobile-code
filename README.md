@@ -18,21 +18,17 @@ Open Termux, tap and hold to paste:
 pkg install -y git nodejs && git clone https://github.com/deivdev/nomacode.git ~/nomacode && cd ~/nomacode && npm install && npm start
 ```
 
-Then open browser → `localhost:3000`
+Browser opens automatically. Tap **⋮ → Add to Home Screen** for the full PWA experience.
 
 ---
 
 ## Start (after install)
 
-**Option 1: PWA (Recommended)**
-
-After installing, add to home screen from your browser for a native app experience. The PWA works offline and launches instantly.
-
-**Option 2: Manual**
-
 ```bash
 cd ~/nomacode && npm start
 ```
+
+Or just tap the Nomacode icon on your home screen.
 
 ## Keyboard Shortcuts
 

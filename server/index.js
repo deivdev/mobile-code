@@ -35,6 +35,24 @@ app.get('/api/health', (req, res) => {
 // Setup WebSocket for terminal I/O
 setupWebSocket(server);
 
+// Auto-open browser (Termux/Android)
+function openBrowser(url) {
+  const commands = [
+    `termux-open-url ${url}`,           // Termux API
+    `am start -a android.intent.action.VIEW -d ${url}`,  // Android fallback
+    `xdg-open ${url}`,                  // Linux
+    `open ${url}`                       // macOS
+  ];
+
+  function tryNext(i) {
+    if (i >= commands.length) return;
+    exec(commands[i], (err) => {
+      if (err) tryNext(i + 1);
+    });
+  }
+  tryNext(0);
+}
+
 // Start server - bind to localhost only for security
 server.listen(PORT, '127.0.0.1', () => {
   console.log(`
@@ -45,12 +63,17 @@ server.listen(PORT, '127.0.0.1', () => {
 │  Server running at:                     │
 │  http://localhost:${PORT.toString().padEnd(5)}                │
 │                                         │
-│  Open this URL in your browser          │
+│  Tip: Add to Home Screen for PWA        │
 │                                         │
 │  Press Ctrl+C to stop                   │
 │                                         │
 └─────────────────────────────────────────┘
 `);
+
+  // Auto-open browser if enabled
+  if (process.env.AUTO_OPEN === '1') {
+    setTimeout(() => openBrowser(`http://localhost:${PORT}`), 500);
+  }
 });
 
 // Graceful shutdown
