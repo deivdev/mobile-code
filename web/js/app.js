@@ -808,6 +808,7 @@ class Nomacode {
     const cmds = [
       { icon: '+', label: 'New session', hint: 'Ctrl+T', action: () => this.showNewSessionModal() },
       { icon: '📁', label: 'Clone repository', hint: 'Ctrl+Shift+C', action: () => this.showCloneModal() },
+      { icon: '🗑', label: 'Delete repository', action: () => this.showDeleteRepoModal() },
       { icon: '⚙', label: 'Settings', action: () => this.showSettingsModal() },
     ];
 
@@ -987,6 +988,43 @@ class Nomacode {
 
     this.hideModal();
     await this.cloneRepo(url, name);
+  }
+
+  showDeleteRepoModal() {
+    if (this.repos.length === 0) {
+      this.toast('No repositories to delete', 'error');
+      return;
+    }
+
+    const repoList = this.repos.map(r => `
+      <div class="repo-item" style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; border-bottom: 1px solid var(--border);">
+        <div>
+          <div style="font-weight: 500;">${this.escapeHtml(r.name)}</div>
+          <div style="font-size: 0.8rem; opacity: 0.7;">${this.escapeHtml(r.path)}</div>
+        </div>
+        <button class="btn btn-danger" onclick="app.confirmDeleteRepo('${r.id}', '${this.escapeHtml(r.name)}')" style="background: #dc3545; padding: 0.25rem 0.5rem;">Delete</button>
+      </div>
+    `).join('');
+
+    this.showModal('Delete Repository', `
+      <div style="max-height: 300px; overflow-y: auto;">
+        ${repoList}
+      </div>
+      <div class="form-actions" style="margin-top: 1rem;">
+        <button class="btn" onclick="app.hideModal()">Close</button>
+      </div>
+    `);
+  }
+
+  confirmDeleteRepo(id, name) {
+    this.showModal('Confirm Delete', `
+      <p>Delete <strong>${name}</strong>?</p>
+      <p style="font-size: 0.9rem; opacity: 0.7;">This will remove the repository from Nomacode but won't delete the files from disk.</p>
+      <div class="form-actions">
+        <button class="btn" onclick="app.showDeleteRepoModal()">Cancel</button>
+        <button class="btn btn-danger" onclick="app.deleteRepo('${id}'); app.hideModal();" style="background: #dc3545;">Delete</button>
+      </div>
+    `);
   }
 
   showSettingsModal() {
