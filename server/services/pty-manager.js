@@ -4,13 +4,22 @@ const { spawn, spawnSync } = require('child_process');
 
 // Detect available PTY method
 let ptyMethod = 'direct'; // 'node-pty', 'script', or 'direct'
+let ptyModule = null;
 
-// Try node-pty first
-try {
-  require('node-pty');
-  ptyMethod = 'node-pty';
-  console.log('[pty-manager] Using node-pty');
-} catch (e) {
+// Try node-pty packages (standard first, then Android-specific)
+const ptyPackages = ['node-pty', '@mmmbuto/node-pty-android-arm64'];
+for (const pkg of ptyPackages) {
+  try {
+    ptyModule = require(pkg);
+    ptyMethod = 'node-pty';
+    console.log(`[pty-manager] Using ${pkg}`);
+    break;
+  } catch (e) {
+    // Continue to next package
+  }
+}
+
+if (ptyMethod !== 'node-pty') {
   // Check if 'script' command is available (Unix only)
   if (os.platform() !== 'win32') {
     const result = spawnSync('which', ['script'], { encoding: 'utf8' });
@@ -78,8 +87,7 @@ function createSession(id, options = {}) {
 
   if (ptyMethod === 'node-pty') {
     // Use node-pty for full PTY support
-    const pty = require('node-pty');
-    proc = pty.spawn(command, args, {
+    proc = ptyModule.spawn(command, args, {
       name: 'xterm-256color',
       cols: cols,
       rows: rows,
