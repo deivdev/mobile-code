@@ -10,7 +10,8 @@
 
 Code anywhere, like a local. Run Claude Code, OpenCode, or Codex directly from Android using Termux.
 
-<img width="1080" height="2412" alt="1000109912" src="https://github.com/user-attachments/assets/183fa937-9aca-43f2-96a6-40aa2956a825" />
+
+<img width="1080" height="2412" alt="1000109913" src="https://github.com/user-attachments/assets/d44fb90a-c644-4c46-85a5-e00276d6aa7c" />
 
 
 ## Install
