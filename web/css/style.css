@@ -89,6 +89,7 @@ html, body {
   color: var(--accent);
   font-weight: 600;
   flex-shrink: 0;
+  cursor: pointer;
 }
 
 .separator {
@@ -166,17 +167,7 @@ html, body {
 .tab-close {
   color: var(--text-dim);
   margin-left: 2px;
-  opacity: 0;
-  transition: opacity 0.15s;
   flex-shrink: 0;
-}
-
-.tab:hover .tab-close {
-  opacity: 1;
-}
-
-.tab-close:hover {
-  color: var(--red);
 }
 
 .add-tab-btn {

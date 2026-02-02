@@ -398,6 +398,60 @@ class Nomacode {
     term.open(wrapper);
     fitAddon.fit();
 
+    // Capture Shift shortcuts before terminal processes them
+    term.attachCustomKeyEventHandler(e => {
+      if (e.type !== 'keydown') return true;
+
+      // Shift+Alt+Tab: Next session
+      if (e.shiftKey && e.altKey && !e.ctrlKey && !e.metaKey && e.key === 'Tab') {
+        e.preventDefault();
+        this.nextSession();
+        return false;
+      }
+
+      if (e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        // Shift+N: New session
+        if (e.key === 'N') {
+          e.preventDefault();
+          this.showNewSessionModal();
+          return false;
+        }
+        // Shift+C: Clone repository
+        if (e.key === 'C') {
+          e.preventDefault();
+          this.showCloneModal();
+          return false;
+        }
+        // Shift+W: Close session
+        if (e.key === 'W') {
+          e.preventDefault();
+          if (this.activeSessionId) this.closeSession(this.activeSessionId);
+          return false;
+        }
+        // Shift+K: Command palette
+        if (e.key === 'K') {
+          e.preventDefault();
+          this.showPalette();
+          return false;
+        }
+        // Shift+Tab: Previous session
+        if (e.key === 'Tab') {
+          e.preventDefault();
+          this.prevSession();
+          return false;
+        }
+        // Shift+1-9: Jump to session by number
+        const digitMatch = e.code.match(/^Digit([1-9])$/);
+        if (digitMatch) {
+          e.preventDefault();
+          const idx = parseInt(digitMatch[1]) - 1;
+          if (this.sessions[idx]) this.switchToSession(this.sessions[idx].id);
+          return false;
+        }
+      }
+      return true;
+    });
+
     // Handle input
     term.onData(data => this.sendInput(sessionId, data));
 
@@ -426,7 +480,6 @@ class Nomacode {
     const terminal = this.terminals.get(sessionId);
     if (terminal) {
       terminal.wrapper.classList.add('active');
-      this.attachToSession(sessionId);
       setTimeout(() => {
         terminal.fitAddon.fit();
         terminal.term.focus();
@@ -986,6 +1039,7 @@ class Nomacode {
     });
 
     // Top bar buttons
+    document.querySelector('.app-title').addEventListener('click', () => this.showWelcome());
     document.getElementById('new-tab-btn').addEventListener('click', () => this.showNewSessionModal());
     document.getElementById('menu-btn').addEventListener('click', () => this.showPalette());
 
@@ -1026,48 +1080,7 @@ class Nomacode {
 
     // Global keyboard shortcuts
     document.addEventListener('keydown', e => {
-      // Don't capture if typing in input (except palette)
-      if (e.target.tagName === 'INPUT' && e.target.id !== 'palette-input') return;
-      if (e.target.tagName === 'SELECT') return;
-
-      // Ctrl+K: Command palette
-      if (e.ctrlKey && e.key === 'k') {
-        e.preventDefault();
-        this.showPalette();
-        return;
-      }
-
-      // Ctrl+T: New session
-      if (e.ctrlKey && e.key === 't') {
-        e.preventDefault();
-        this.showNewSessionModal();
-        return;
-      }
-
-      // Ctrl+W: Close session
-      if (e.ctrlKey && e.key === 'w') {
-        e.preventDefault();
-        if (this.activeSessionId) this.closeSession(this.activeSessionId);
-        return;
-      }
-
-      // Ctrl+Tab / Ctrl+Shift+Tab: Switch sessions
-      if (e.ctrlKey && e.key === 'Tab') {
-        e.preventDefault();
-        if (e.shiftKey) this.prevSession();
-        else this.nextSession();
-        return;
-      }
-
-      // Alt+1-9: Jump to session
-      if (e.altKey && e.key >= '1' && e.key <= '9') {
-        e.preventDefault();
-        const idx = parseInt(e.key) - 1;
-        if (this.sessions[idx]) this.switchToSession(this.sessions[idx].id);
-        return;
-      }
-
-      // Escape: Close palette/modal or focus terminal
+      // Escape: Close palette/modal (always works)
       if (e.key === 'Escape') {
         if (!document.getElementById('palette-overlay').classList.contains('hidden')) {
           this.hidePalette();
@@ -1077,13 +1090,61 @@ class Nomacode {
         return;
       }
 
-      // Welcome screen shortcuts (when no sessions active)
-      if (!this.activeSessionId && e.target === document.body) {
-        switch (e.key.toLowerCase()) {
-          case 'n': this.showNewSessionModal(); break;
-          case 'c': this.showCloneModal(); break;
-          case 'o': this.showOpenRepoModal(); break;
-          case 's': this.showSettingsModal(); break;
+      // Don't capture other shortcuts if typing in input (except palette)
+      if (e.target.tagName === 'INPUT' && e.target.id !== 'palette-input') return;
+      if (e.target.tagName === 'SELECT') return;
+
+      // Shift+Alt+Tab: Next session
+      if (e.shiftKey && e.altKey && !e.ctrlKey && !e.metaKey && e.key === 'Tab') {
+        e.preventDefault();
+        this.nextSession();
+        return;
+      }
+
+      // Shift-based shortcuts
+      if (e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        // Shift+N: New session
+        if (e.key === 'N') {
+          e.preventDefault();
+          this.showNewSessionModal();
+          return;
+        }
+
+        // Shift+C: Clone repository
+        if (e.key === 'C') {
+          e.preventDefault();
+          this.showCloneModal();
+          return;
+        }
+
+        // Shift+W: Close session
+        if (e.key === 'W') {
+          e.preventDefault();
+          if (this.activeSessionId) this.closeSession(this.activeSessionId);
+          return;
+        }
+
+        // Shift+K: Command palette
+        if (e.key === 'K') {
+          e.preventDefault();
+          this.showPalette();
+          return;
+        }
+
+        // Shift+Tab: Previous session
+        if (e.key === 'Tab') {
+          e.preventDefault();
+          this.prevSession();
+          return;
+        }
+
+        // Shift+1-9: Jump to session by number
+        const digitMatch = e.code.match(/^Digit([1-9])$/);
+        if (digitMatch) {
+          e.preventDefault();
+          const idx = parseInt(digitMatch[1]) - 1;
+          if (this.sessions[idx]) this.switchToSession(this.sessions[idx].id);
+          return;
         }
       }
     });
@@ -1111,8 +1172,10 @@ class Nomacode {
     if (!toolbar) return;
 
     toolbar.querySelectorAll('.key-btn').forEach(btn => {
-      btn.addEventListener('click', e => {
+      // Use touchstart to prevent keyboard from closing on mobile
+      const handler = e => {
         e.preventDefault();
+        e.stopPropagation();
 
         if (btn.dataset.modifier) {
           // Toggle modifier key
@@ -1121,7 +1184,16 @@ class Nomacode {
           // Send key to terminal
           this.sendKey(btn.dataset.key);
         }
-      });
+
+        // Refocus terminal to keep keyboard open
+        const terminal = this.terminals.get(this.activeSessionId);
+        if (terminal?.term) {
+          terminal.term.focus();
+        }
+      };
+
+      btn.addEventListener('touchstart', handler, { passive: false });
+      btn.addEventListener('mousedown', handler); // Fallback for non-touch
     });
   }
 
