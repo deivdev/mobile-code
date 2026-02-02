@@ -896,7 +896,7 @@ class Nomacode {
 
     // Build tool options from available tools
     const toolOptions = this.tools.available.map(t =>
-      `<option value="${t.id === 'shell' ? '' : t.id}">${this.escapeHtml(t.name)}</option>`
+      `<option value="${t.id}">${this.escapeHtml(t.name)}</option>`
     ).join('');
 
     // Build unavailable tools with install buttons
@@ -938,8 +938,7 @@ class Nomacode {
     `);
 
     // Set default tool
-    const defaultValue = this.tools.defaultTool === 'shell' ? '' : this.tools.defaultTool;
-    document.getElementById('new-tool').value = defaultValue;
+    document.getElementById('new-tool').value = this.tools.defaultTool;
   }
 
   submitNewSession() {
@@ -993,7 +992,7 @@ class Nomacode {
   showSettingsModal() {
     // Build tool options from available tools
     const toolOptions = this.tools.available.map(t =>
-      `<option value="${t.id === 'shell' ? '' : t.id}">${this.escapeHtml(t.name)}</option>`
+      `<option value="${t.id}">${this.escapeHtml(t.name)}</option>`
     ).join('');
 
     this.showModal('Settings', `
@@ -1013,8 +1012,7 @@ class Nomacode {
       </div>
     `);
 
-    const defaultValue = this.settings?.defaultTool === 'shell' ? '' : (this.settings?.defaultTool || '');
-    document.getElementById('setting-tool').value = defaultValue;
+    document.getElementById('setting-tool').value = this.settings?.defaultTool || '';
   }
 
   async submitSettings() {
