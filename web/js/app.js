@@ -15,12 +15,17 @@ class Nomacode {
     this.retryCount = 0;
     this.maxRetries = 3;
 
-    // Modifier keys state
+    // Modifier keys state (toolbar toggles)
     this.modifiers = { ctrl: false, alt: false };
+    // Physical keyboard shift state
+    this.shiftHeld = false;
 
     // Gesture state
     this.touchStart = null;
     this.gestureThreshold = 50;
+
+    // Claude Code mode tracking
+    this.claudeMode = null;
   }
 
   async init() {
@@ -310,7 +315,13 @@ class Nomacode {
 
     switch (msg.type) {
       case 'output':
-        if (terminal) terminal.term.write(msg.data);
+        if (terminal) {
+          terminal.term.write(msg.data);
+          // Detect Claude Code mode from output
+          if (msg.sessionId === this.activeSessionId) {
+            this.detectClaudeMode(msg.data);
+          }
+        }
         break;
       case 'exit':
         if (terminal) {
@@ -524,6 +535,9 @@ class Nomacode {
     }
 
     this.activeSessionId = sessionId;
+    // Reset mode when switching sessions
+    this.claudeMode = null;
+    this.updateClaudeModeDisplay();
     console.log('Showing terminal view');
     this.showView('terminal');
 
@@ -641,6 +655,9 @@ class Nomacode {
 
     // Update indicator
     this.updateConnectionIndicator();
+
+    // Compact logo only when tabs need space (after DOM updates)
+    setTimeout(() => this.updateLogoCompact(), 10);
   }
 
   updateRecentRepos() {
@@ -681,6 +698,60 @@ class Nomacode {
       `${this.sessions.indexOf(session) + 1}/${this.sessions.length}` : '';
   }
 
+  detectClaudeMode(data) {
+    // Strip ANSI escape codes for pattern matching
+    const clean = data.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '').toLowerCase();
+
+    // Detect mode changes from Claude Code status line
+    let newMode = null;
+
+    if (clean.includes('plan mode') || clean.includes('[plan]') || /\bplan\b.*mode/i.test(clean)) {
+      newMode = 'PLAN';
+    } else if (clean.includes('autoaccept') || clean.includes('auto-accept') || clean.includes('[auto]')) {
+      newMode = 'ACCEPT';
+    } else if (clean.includes('exited plan') || clean.includes('plan mode off')) {
+      newMode = null;
+    }
+
+    if (newMode !== undefined && newMode !== this.claudeMode) {
+      this.claudeMode = newMode;
+      this.updateClaudeModeDisplay();
+    }
+  }
+
+  cycleMode() {
+    // Iterate through: NORMAL → PLAN → ACCEPT → NORMAL
+    const modes = [null, 'PLAN', 'ACCEPT'];
+    const currentIdx = modes.indexOf(this.claudeMode);
+    const nextIdx = (currentIdx + 1) % modes.length;
+    this.claudeMode = modes[nextIdx];
+    this.updateClaudeModeDisplay();
+  }
+
+  updateLogoCompact() {
+    const topbar = document.getElementById('topbar');
+    const tabsContainer = document.getElementById('tabs-container');
+    const tabs = document.getElementById('tabs');
+
+    if (!tabsContainer || !tabs) return;
+
+    // Check if tabs are overflowing their container
+    const needsSpace = tabs.scrollWidth > tabsContainer.clientWidth - 50;
+    topbar.classList.toggle('compact', needsSpace);
+  }
+
+  updateClaudeModeDisplay() {
+    const modeEl = document.getElementById('status-mode');
+
+    if (this.claudeMode) {
+      modeEl.textContent = this.claudeMode;
+      modeEl.className = this.claudeMode.toLowerCase();
+    } else {
+      modeEl.textContent = 'NORMAL';
+      modeEl.className = '';
+    }
+  }
+
   // ─── Views ───────────────────────────────────────────────
 
   showView(name) {
@@ -703,6 +774,8 @@ class Nomacode {
   showWelcome() {
     this.showView('welcome');
     this.activeSessionId = null;
+    this.claudeMode = null;
+    this.updateClaudeModeDisplay();
     this.renderTabs();
     this.updateStatusBar();
   }
@@ -1036,6 +1109,14 @@ class Nomacode {
   // ─── Event Binding ───────────────────────────────────────
 
   bindEvents() {
+    // Track physical keyboard Shift key for toolbar combinations
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Shift') this.shiftHeld = true;
+    });
+    document.addEventListener('keyup', e => {
+      if (e.key === 'Shift') this.shiftHeld = false;
+    });
+
     // Welcome screen actions
     document.querySelectorAll('.action-item').forEach(item => {
       item.addEventListener('click', () => {
@@ -1054,6 +1135,12 @@ class Nomacode {
     document.querySelector('.app-title').addEventListener('click', () => this.showWelcome());
     document.getElementById('new-tab-btn').addEventListener('click', () => this.showNewSessionModal());
     document.getElementById('menu-btn').addEventListener('click', () => this.showPalette());
+
+    // Status mode click to cycle through modes
+    document.getElementById('status-mode').addEventListener('click', () => this.cycleMode());
+
+    // Watch for resize to update logo compact state
+    window.addEventListener('resize', () => this.updateLogoCompact());
 
     // Palette input
     const paletteInput = document.getElementById('palette-input');
@@ -1233,7 +1320,8 @@ class Nomacode {
         data = '\x1b';
         break;
       case 'Tab':
-        data = '\t';
+        // Shift+Tab sends backtab escape sequence
+        data = this.shiftHeld ? '\x1b[Z' : '\t';
         break;
       case 'ArrowUp':
         data = '\x1b[A';

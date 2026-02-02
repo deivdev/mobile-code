@@ -92,6 +92,10 @@ html, body {
   cursor: pointer;
 }
 
+#topbar.compact .logo-rest {
+  display: none;
+}
+
 .separator {
   color: var(--border);
   flex-shrink: 0;
@@ -552,10 +556,25 @@ body.keyboard-visible #statusbar {
   border-radius: 4px;
   font-weight: 600;
   font-size: 11px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+#status-mode:hover {
+  opacity: 0.9;
 }
 
 #status-mode.insert {
   background: var(--accent);
+}
+
+#status-mode.plan {
+  background: var(--yellow);
+}
+
+#status-mode.accept {
+  background: var(--purple);
 }
 
 #status-cwd {
