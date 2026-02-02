@@ -140,6 +140,10 @@ class Nomacode {
     const existing = document.getElementById('offline-view');
     if (existing) return;
 
+    // Update indicator to show offline
+    this.serverOnline = false;
+    this.updateConnectionIndicator();
+
     const isTermux = /Android/i.test(navigator.userAgent);
     const isPWA = window.matchMedia('(display-mode: standalone)').matches ||
                   window.navigator.standalone === true;
@@ -202,6 +206,10 @@ class Nomacode {
     if (offlineView) {
       offlineView.remove();
     }
+
+    // Update indicator to show online
+    this.serverOnline = true;
+    this.updateConnectionIndicator();
   }
 
   async retryConnection() {
@@ -425,6 +433,12 @@ class Nomacode {
         if (e.key === 'K') {
           e.preventDefault();
           this.showPalette();
+          return false;
+        }
+        // Shift+O: Open repository
+        if (e.key === 'O') {
+          e.preventDefault();
+          this.showOpenRepoModal();
           return false;
         }
         // Shift+1-9: Jump to session by number
@@ -1108,6 +1122,13 @@ class Nomacode {
         if (e.key === 'K') {
           e.preventDefault();
           this.showPalette();
+          return;
+        }
+
+        // Shift+O: Open repository
+        if (e.key === 'O') {
+          e.preventDefault();
+          this.showOpenRepoModal();
           return;
         }
 
