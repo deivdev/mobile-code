@@ -1,6 +1,6 @@
 {
-  "name": "Mobile Code",
-  "short_name": "MobileCode",
+  "name": "Nomacode",
+  "short_name": "Nomacode",
   "description": "AI-powered coding on mobile",
   "start_url": "/",
   "display": "standalone",
@@ -13,6 +13,12 @@
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
     }
   ]
 }

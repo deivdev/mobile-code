@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Background fills entire icon for maskable safe zone -->
+  <rect width="512" height="512" fill="#0d1117"/>
+  <!-- Content centered within 80% safe zone (51.2px padding) -->
+  <g transform="translate(76, 76) scale(0.7)">
+    <rect width="512" height="512" rx="48" fill="#161b22" stroke="#30363d" stroke-width="4"/>
+    <circle cx="96" cy="80" r="20" fill="#f85149"/>
+    <circle cx="160" cy="80" r="20" fill="#d29922"/>
+    <circle cx="224" cy="80" r="20" fill="#3fb950"/>
+    <text x="80" y="220" font-family="monospace" font-size="80" font-weight="bold" fill="#58a6ff">$_</text>
+    <text x="80" y="340" font-family="monospace" font-size="56" font-weight="bold" fill="#3fb950">mobile</text>
+    <text x="80" y="420" font-family="monospace" font-size="56" font-weight="bold" fill="#58a6ff">-code</text>
+  </g>
+</svg>

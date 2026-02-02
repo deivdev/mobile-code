@@ -1,4 +1,4 @@
-// API Client for Mobile Code
+// API Client for Nomacode
 
 const API = {
   baseUrl: '/api',

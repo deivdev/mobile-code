@@ -18,9 +18,9 @@ for (let i = 0; i < args.length; i++) {
   }
   if (args[i] === '--help' || args[i] === '-h') {
     console.log(`
-Mobile Code - AI Coding Assistant for Mobile
+Nomacode - Code anywhere, like a local
 
-Usage: mobile-code [options]
+Usage: nomacode [options]
 
 Options:
   -p, --port <number>  Port to run the server on (default: 3000)
@@ -28,9 +28,9 @@ Options:
   -h, --help           Show this help message
 
 Examples:
-  mobile-code                    # Start on default port 3000
-  mobile-code --port 8080        # Start on port 8080
-  mobile-code --no-open          # Start without opening browser
+  nomacode                    # Start on default port 3000
+  nomacode --port 8080        # Start on port 8080
+  nomacode --no-open          # Start without opening browser
 `);
     process.exit(0);
   }

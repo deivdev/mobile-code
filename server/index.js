@@ -28,7 +28,8 @@ app.use('/api/tools', toolsApi);
 
 // Health check
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', version: '0.1.0' });
+  const { getPtyMethod } = require('./services/pty-manager');
+  res.json({ status: 'ok', version: '0.1.0', pty: getPtyMethod() });
 });
 
 // Setup WebSocket for terminal I/O
@@ -38,7 +39,7 @@ setupWebSocket(server);
 server.listen(PORT, '127.0.0.1', () => {
   console.log(`
 ┌─────────────────────────────────────────┐
-│         📱 Mobile Code v0.1.0           │
+│         📱 Nomacode v0.1.0              │
 ├─────────────────────────────────────────┤
 │                                         │
 │  Server running at:                     │

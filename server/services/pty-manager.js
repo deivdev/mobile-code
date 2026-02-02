@@ -1,17 +1,28 @@
 const os = require('os');
 const path = require('path');
-const { spawn } = require('child_process');
+const { spawn, spawnSync } = require('child_process');
 
-// Try to load node-pty, fall back to child_process
-let pty = null;
-let usePty = false;
+// Detect available PTY method
+let ptyMethod = 'direct'; // 'node-pty', 'script', or 'direct'
 
+// Try node-pty first
 try {
-  pty = require('node-pty');
-  usePty = true;
+  require('node-pty');
+  ptyMethod = 'node-pty';
   console.log('[pty-manager] Using node-pty');
 } catch (e) {
-  console.log('[pty-manager] node-pty not available, using child_process fallback');
+  // Check if 'script' command is available (Unix only)
+  if (os.platform() !== 'win32') {
+    const result = spawnSync('which', ['script'], { encoding: 'utf8' });
+    if (result.status === 0 && result.stdout.trim()) {
+      ptyMethod = 'script';
+      console.log('[pty-manager] Using script command for PTY');
+    } else {
+      console.log('[pty-manager] Using direct spawn (no PTY)');
+    }
+  } else {
+    console.log('[pty-manager] Using direct spawn (Windows)');
+  }
 }
 
 // Store active sessions
@@ -48,7 +59,6 @@ function createSession(id, options = {}) {
         args = [];
         break;
       default:
-        // Default to shell
         command = defaultShell;
         args = [];
     }
@@ -66,8 +76,9 @@ function createSession(id, options = {}) {
   let proc;
   let session;
 
-  if (usePty) {
+  if (ptyMethod === 'node-pty') {
     // Use node-pty for full PTY support
+    const pty = require('node-pty');
     proc = pty.spawn(command, args, {
       name: 'xterm-256color',
       cols: cols,
@@ -77,17 +88,17 @@ function createSession(id, options = {}) {
     });
 
     session = {
-      id: id,
+      id,
       pty: proc,
       pid: proc.pid,
-      tool: tool,
-      cwd: cwd,
+      tool,
+      cwd,
       status: 'running',
       createdAt: new Date().toISOString(),
       buffer: '',
       outputHandler: null,
       exitHandler: null,
-      usePty: true
+      ptyMethod: 'node-pty'
     };
 
     proc.onData((data) => {
@@ -108,87 +119,95 @@ function createSession(id, options = {}) {
       }
     });
 
-  } else {
-    // Fallback: use child_process with script command for PTY-like behavior
-    // On Unix, 'script' command provides a pseudo-terminal
-    const isTermux = process.env.PREFIX && process.env.PREFIX.includes('com.termux');
-
-    if (os.platform() !== 'win32') {
-      // Use script -q for pseudo-PTY on Unix/Termux
-      proc = spawn('script', ['-q', '-c', `${command} ${args.join(' ')}`, '/dev/null'], {
-        cwd: cwd,
-        env: processEnv,
-        stdio: ['pipe', 'pipe', 'pipe']
-      });
-    } else {
-      // Windows fallback - direct spawn
-      proc = spawn(command, args, {
-        cwd: cwd,
-        env: processEnv,
-        stdio: ['pipe', 'pipe', 'pipe'],
-        shell: true
-      });
-    }
-
-    session = {
-      id: id,
-      pty: proc,
-      pid: proc.pid,
-      tool: tool,
+  } else if (ptyMethod === 'script') {
+    // Use 'script' command for pseudo-PTY
+    const fullCmd = args.length > 0 ? `${command} ${args.join(' ')}` : command;
+    proc = spawn('script', ['-q', '-c', fullCmd, '/dev/null'], {
       cwd: cwd,
-      status: 'running',
-      createdAt: new Date().toISOString(),
-      buffer: '',
-      outputHandler: null,
-      exitHandler: null,
-      usePty: false
-    };
-
-    // Handle stdout
-    proc.stdout.on('data', (data) => {
-      const str = data.toString();
-      session.buffer += str;
-      if (session.buffer.length > 50000) {
-        session.buffer = session.buffer.slice(-50000);
-      }
-      if (session.outputHandler) {
-        session.outputHandler(str);
-      }
+      env: processEnv,
+      stdio: ['pipe', 'pipe', 'pipe']
     });
 
-    // Handle stderr
-    proc.stderr.on('data', (data) => {
-      const str = data.toString();
-      session.buffer += str;
-      if (session.buffer.length > 50000) {
-        session.buffer = session.buffer.slice(-50000);
-      }
-      if (session.outputHandler) {
-        session.outputHandler(str);
-      }
+    session = createChildProcessSession(id, proc, tool, cwd, 'script');
+    setupChildProcessHandlers(session);
+
+  } else {
+    // Direct spawn - no PTY, but always works
+    proc = spawn(command, args, {
+      cwd: cwd,
+      env: processEnv,
+      stdio: ['pipe', 'pipe', 'pipe'],
+      shell: os.platform() === 'win32'
     });
 
-    // Handle exit
-    proc.on('exit', (exitCode) => {
-      session.status = 'stopped';
-      session.exitCode = exitCode;
-      if (session.exitHandler) {
-        session.exitHandler(exitCode);
-      }
-    });
-
-    proc.on('error', (err) => {
-      console.error('[pty-manager] Process error:', err.message);
-      session.status = 'stopped';
-      session.exitCode = 1;
-      if (session.exitHandler) {
-        session.exitHandler(1);
-      }
-    });
+    session = createChildProcessSession(id, proc, tool, cwd, 'direct');
+    setupChildProcessHandlers(session);
   }
 
   sessions.set(id, session);
   return session;
+}
+
+function createChildProcessSession(id, proc, tool, cwd, method) {
+  return {
+    id,
+    pty: proc,
+    pid: proc.pid,
+    tool,
+    cwd,
+    status: 'running',
+    createdAt: new Date().toISOString(),
+    buffer: '',
+    outputHandler: null,
+    exitHandler: null,
+    ptyMethod: method
+  };
+}
+
+function setupChildProcessHandlers(session) {
+  const proc = session.pty;
+
+  // Handle stdout
+  proc.stdout.on('data', (data) => {
+    const str = data.toString();
+    session.buffer += str;
+    if (session.buffer.length > 50000) {
+      session.buffer = session.buffer.slice(-50000);
+    }
+    if (session.outputHandler) {
+      session.outputHandler(str);
+    }
+  });
+
+  // Handle stderr
+  proc.stderr.on('data', (data) => {
+    const str = data.toString();
+    session.buffer += str;
+    if (session.buffer.length > 50000) {
+      session.buffer = session.buffer.slice(-50000);
+    }
+    if (session.outputHandler) {
+      session.outputHandler(str);
+    }
+  });
+
+  // Handle exit
+  proc.on('exit', (exitCode) => {
+    session.status = 'stopped';
+    session.exitCode = exitCode;
+    if (session.exitHandler) {
+      session.exitHandler(exitCode);
+    }
+  });
+
+  proc.on('error', (err) => {
+    console.error('[pty-manager] Process error:', err.message);
+    session.status = 'stopped';
+    session.exitCode = 1;
+    if (session.exitHandler) {
+      session.exitHandler(1);
+    }
+  });
 }
 
 function getSession(id) {
@@ -197,7 +216,7 @@ function getSession(id) {
 
 function getAllSessions() {
   const result = [];
-  sessions.forEach((session, id) => {
+  sessions.forEach((session) => {
     result.push({
       id: session.id,
       pid: session.pid,
@@ -205,7 +224,8 @@ function getAllSessions() {
       cwd: session.cwd,
       status: session.status,
       createdAt: session.createdAt,
-      exitCode: session.exitCode
+      exitCode: session.exitCode,
+      ptyMethod: session.ptyMethod
     });
   });
   return result;
@@ -214,7 +234,7 @@ function getAllSessions() {
 function writeToSession(id, data) {
   const session = sessions.get(id);
   if (session && session.pty && session.status === 'running') {
-    if (session.usePty) {
+    if (session.ptyMethod === 'node-pty') {
       session.pty.write(data);
     } else {
       session.pty.stdin.write(data);
@@ -227,10 +247,10 @@ function writeToSession(id, data) {
 function resizeSession(id, cols, rows) {
   const session = sessions.get(id);
   if (session && session.pty && session.status === 'running') {
-    if (session.usePty) {
+    if (session.ptyMethod === 'node-pty') {
       session.pty.resize(cols, rows);
     }
-    // For fallback mode, resize is not supported but we don't error
+    // For other methods, resize is not supported
     return true;
   }
   return false;
@@ -240,7 +260,7 @@ function killSession(id) {
   const session = sessions.get(id);
   if (session) {
     if (session.pty && session.status === 'running') {
-      if (session.usePty) {
+      if (session.ptyMethod === 'node-pty') {
         session.pty.kill();
       } else {
         session.pty.kill('SIGTERM');
@@ -255,7 +275,7 @@ function killSession(id) {
 function killAllSessions() {
   sessions.forEach((session) => {
     if (session.pty && session.status === 'running') {
-      if (session.usePty) {
+      if (session.ptyMethod === 'node-pty') {
         session.pty.kill();
       } else {
         session.pty.kill('SIGTERM');
@@ -265,6 +285,10 @@ function killAllSessions() {
   sessions.clear();
 }
 
+function getPtyMethod() {
+  return ptyMethod;
+}
+
 module.exports = {
   createSession,
   getSession,
@@ -272,5 +296,6 @@ module.exports = {
   writeToSession,
   resizeSession,
   killSession,
-  killAllSessions
+  killAllSessions,
+  getPtyMethod
 };

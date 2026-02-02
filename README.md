@@ -1,21 +1,21 @@
-# mobile-code
+# nomacode
 
 ```
-                 _     _ _                          _
-  _ __ ___   ___| |__ (_) | ___        ___ ___   __| | ___
- | '_ ` _ \ / _ \ '_ \| | |/ _ \_____ / __/ _ \ / _` |/ _ \
- | | | | | | (_) | |_) | | |  __/_____| (_| (_) | (_| |  __/
- |_| |_| |_|\___/|_.__/|_|_|\___|      \___\___/ \__,_|\___|
+  _  _  __  __  _  ___  __  ___  ___
+ | \| |/  \|  \/ |/   |/  \|   \| __|
+ | .  | () | |\/| |   | () | |) | _|
+ |_|\_|\__/|_|  |_|\___|\__/|___/|___|
+       >> THE MOBILE NOMAD IDE <<
 ```
 
-AI-powered coding assistant on your phone. Run Claude Code, OpenCode, or Codex directly from Android using Termux.
+Code anywhere, like a local. Run Claude Code, OpenCode, or Codex directly from Android using Termux.
 
 ## Install
 
 Open Termux, tap and hold to paste:
 
 ```bash
-pkg install -y git nodejs && git clone https://github.com/deivdev/mobile-code.git ~/mobile-code && cd ~/mobile-code && npm install && npm start
+pkg install -y git nodejs && git clone https://github.com/deivdev/nomacode.git ~/nomacode && cd ~/nomacode && npm install && npm start
 ```
 
 Then open browser → `localhost:3000`
@@ -31,7 +31,7 @@ After installing, add to home screen from your browser for a native app experien
 **Option 2: Manual**
 
 ```bash
-cd ~/mobile-code && npm start
+cd ~/nomacode && npm start
 ```
 
 ## Keyboard Shortcuts

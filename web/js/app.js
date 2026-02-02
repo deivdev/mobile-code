@@ -1,6 +1,6 @@
-// Mobile Code - Terminal-like UI
+// Nomacode - Terminal-like UI
 
-class MobileCode {
+class Nomacode {
   constructor() {
     this.sessions = [];
     this.repos = [];
@@ -151,7 +151,7 @@ class MobileCode {
       <div class="offline-content">
         <div class="offline-icon">⚡</div>
         <h2 class="offline-title">Server Not Running</h2>
-        <p class="offline-subtitle">The Mobile Code server isn't reachable</p>
+        <p class="offline-subtitle">The Nomacode server isn't reachable</p>
 
         <div class="offline-spinner">
           <div class="spinner"></div>
@@ -168,13 +168,13 @@ class MobileCode {
             </div>
             <div class="step">
               <span class="step-num">2</span>
-              <span>Run: <code>cd ~/mobile-code && npm start</code></span>
+              <span>Run: <code>cd ~/nomacode && npm start</code></span>
             </div>
           </div>
 
           <div class="offline-tip">
             <strong>Tip:</strong> Set up auto-start with Termux:Boot
-            <br><code>~/.termux/boot/mobile-code</code>
+            <br><code>~/.termux/boot/nomacode</code>
           </div>
         </div>
         ` : `
@@ -343,6 +343,10 @@ class MobileCode {
 
   createTerminal(sessionId) {
     const container = document.getElementById('terminal-container');
+    const termView = document.getElementById('terminal-view');
+    console.log('terminal-view classes:', termView?.className);
+    console.log('terminal-view dimensions:', termView?.offsetWidth, 'x', termView?.offsetHeight);
+    console.log('Container dimensions:', container?.offsetWidth, 'x', container?.offsetHeight);
 
     // Hide all terminals
     this.terminals.forEach(t => t.wrapper.classList.remove('active'));
@@ -352,6 +356,11 @@ class MobileCode {
     wrapper.className = 'terminal-wrapper active';
     wrapper.id = `term-${sessionId}`;
     container.appendChild(wrapper);
+
+    // Log after append
+    setTimeout(() => {
+      console.log('Wrapper dimensions after append:', wrapper.offsetWidth, 'x', wrapper.offsetHeight);
+    }, 50);
 
     // Create xterm
     const term = new Terminal({
@@ -554,7 +563,7 @@ class MobileCode {
       return `
         <button class="tab ${active}" data-id="${s.id}">
           <span class="tab-index">${i + 1}</span>
-          <span>${this.escapeHtml(label)}</span>
+          <span class="tab-label">${this.escapeHtml(label)}</span>
           <span class="tab-close" data-id="${s.id}">×</span>
         </button>
       `;
@@ -1273,5 +1282,5 @@ class MobileCode {
 }
 
 // Initialize app
-const app = new MobileCode();
+const app = new Nomacode();
 document.addEventListener('DOMContentLoaded', () => app.init());

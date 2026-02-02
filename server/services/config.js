@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const CONFIG_DIR = path.join(os.homedir(), '.mobile-code');
+const CONFIG_DIR = path.join(os.homedir(), '.nomacode');
 const CONFIG_FILE = path.join(CONFIG_DIR, 'config.json');
 const REPOS_DIR = path.join(CONFIG_DIR, 'repos');
 

@@ -17,7 +17,7 @@
   --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Consolas, monospace;
   --topbar-height: 56px;
   --toolbar-height: 44px;
-  --statusbar-height: 52px;
+  --statusbar-height: 32px;
   --viewport-height: 100vh;
   --keyboard-offset: 0px;
 }
@@ -31,18 +31,25 @@
 html, body {
   height: var(--viewport-height);
   overflow: hidden;
+  overscroll-behavior: none;
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-mono);
   font-size: 13px;
   line-height: 1.4;
   -webkit-font-smoothing: antialiased;
+  touch-action: none;
 }
 
 #app {
   height: var(--viewport-height);
   overflow: hidden;
-  position: relative;
+  overscroll-behavior: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
 }
 
 /* Top Bar */
@@ -62,32 +69,64 @@ html, body {
   z-index: 100;
 }
 
-.topbar-left, .topbar-right {
+.topbar-left {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
 .app-title {
   color: var(--accent);
   font-weight: 600;
+  flex-shrink: 0;
 }
 
 .separator {
   color: var(--border);
+  flex-shrink: 0;
+}
+
+#tabs-container {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+#tabs-container::-webkit-scrollbar {
+  display: none;
 }
 
 #tabs {
   display: flex;
   gap: 2px;
+  flex-shrink: 1;
+  min-width: 0;
 }
 
 .tab {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 12px 14px;
-  min-height: 44px;
+  gap: 4px;
+  padding: 8px 10px;
+  min-height: 36px;
+  min-width: 60px;
+  max-width: 150px;
   background: transparent;
   border: none;
   color: var(--text-dim);
@@ -96,6 +135,9 @@ html, body {
   cursor: pointer;
   border-radius: 4px;
   transition: all 0.15s;
+  flex-shrink: 1;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .tab:hover {
@@ -111,13 +153,22 @@ html, body {
 .tab-index {
   color: var(--text-dim);
   font-size: 10px;
+  flex-shrink: 0;
+}
+
+.tab-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
 }
 
 .tab-close {
   color: var(--text-dim);
-  margin-left: 4px;
+  margin-left: 2px;
   opacity: 0;
   transition: opacity 0.15s;
+  flex-shrink: 0;
 }
 
 .tab:hover .tab-close {
@@ -126,6 +177,15 @@ html, body {
 
 .tab-close:hover {
   color: var(--red);
+}
+
+.add-tab-btn {
+  padding: 6px 10px;
+  min-width: 32px;
+  min-height: 32px;
+  font-size: 16px;
+  font-weight: bold;
+  flex-shrink: 0;
 }
 
 .indicator {
@@ -178,6 +238,7 @@ body.keyboard-visible #main-content {
   right: 0;
   bottom: 0;
   z-index: 1;
+  display: block;
 }
 
 .view.hidden {
@@ -186,6 +247,7 @@ body.keyboard-visible #main-content {
 }
 
 .view.active {
+  display: block;
   z-index: 10;
 }
 
@@ -213,6 +275,8 @@ body.keyboard-visible #main-content {
   right: 0;
   bottom: 0;
   display: none;
+  touch-action: pan-y;
+  overscroll-behavior: contain;
 }
 
 .terminal-wrapper.active {
@@ -226,6 +290,7 @@ body.keyboard-visible #main-content {
 
 .terminal-wrapper .xterm-viewport {
   overflow-y: auto !important;
+  overscroll-behavior: contain;
 }
 
 /* Welcome View */
@@ -352,10 +417,10 @@ body.keyboard-visible #main-content {
   font-size: 11px;
 }
 
-/* Key Toolbar (mobile) - only visible with keyboard */
+/* Key Toolbar (mobile) - only visible with keyboard, sticks above keyboard */
 #key-toolbar {
   position: absolute;
-  bottom: var(--statusbar-height);
+  bottom: 0;
   left: 0;
   right: 0;
   display: none;
@@ -366,7 +431,7 @@ body.keyboard-visible #main-content {
   padding: 0 8px;
   background: var(--bg-light);
   border-top: 1px solid var(--border);
-  z-index: 100;
+  z-index: 101;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
@@ -473,9 +538,14 @@ body.keyboard-visible #main-content {
   padding: 0 12px;
   background: var(--bg-light);
   border-top: 1px solid var(--border);
-  font-size: 12px;
+  font-size: 11px;
   flex-shrink: 0;
   z-index: 100;
+}
+
+/* When keyboard visible, statusbar goes above toolbar */
+body.keyboard-visible #statusbar {
+  bottom: var(--toolbar-height);
 }
 
 .status-left, .status-right {

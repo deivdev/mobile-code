@@ -4,7 +4,7 @@ echo "==============================="
 echo "   Termux Setup Script"
 echo "==============================="
 echo ""
-echo "This script sets up your Termux environment for Mobile Code."
+echo "This script sets up your Termux environment for Nomacode."
 echo ""
 
 # Request storage permission
@@ -16,7 +16,7 @@ echo ""
 echo "[2/4] Updating Termux packages..."
 pkg update -y && pkg upgrade -y
 
-# Install essential packages
+# Install essential packages (including build tools for node-pty)
 echo ""
 echo "[3/4] Installing essential packages..."
 pkg install -y \
@@ -26,7 +26,10 @@ pkg install -y \
     curl \
     wget \
     vim \
-    python
+    python \
+    make \
+    clang \
+    build-essential
 
 # Set up extra keys (helpful for terminal usage)
 echo ""
@@ -50,6 +53,6 @@ echo "==============================="
 echo "   Termux Setup Complete!"
 echo "==============================="
 echo ""
-echo "Now run the Mobile Code installer:"
+echo "Now run the Nomacode installer:"
 echo "  ./scripts/install.sh"
 echo ""

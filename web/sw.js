@@ -1,5 +1,5 @@
-// Service Worker for Mobile Code PWA
-const CACHE_NAME = 'mobile-code-v2';
+// Service Worker for Nomacode PWA
+const CACHE_NAME = 'nomacode-v1';
 
 // Assets to cache for offline use
 const STATIC_ASSETS = [
@@ -8,12 +8,12 @@ const STATIC_ASSETS = [
   '/css/style.css',
   '/js/api.js',
   '/js/app.js',
-  '/js/terminal.js',
   '/lib/xterm.css',
   '/lib/xterm.min.js',
   '/lib/xterm-addon-fit.min.js',
   '/manifest.json',
-  '/icons/icon.svg'
+  '/icons/icon.svg',
+  '/icons/icon-maskable.svg'
 ];
 
 // Install - cache static assets
