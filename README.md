@@ -10,10 +10,7 @@
 
 Code anywhere, like a local. Run Claude Code, OpenCode, or Codex directly from Android using Termux.
 
-<img width="1080" height="2412" alt="1000109914" src="https://github.com/user-attachments/assets/b105141c-31f8-4e80-8239-fa8d2561d76d" />
-
-<img width="1080" height="2412" alt="1000109915" src="https://github.com/user-attachments/assets/e14304a0-8393-4791-baf5-4f4561466005" />
-
+<img src="https://github.com/user-attachments/assets/b105141c-31f8-4e80-8239-fa8d2561d76d" width="300"> <img src="https://github.com/user-attachments/assets/e14304a0-8393-4791-baf5-4f4561466005" width="300"> 
 
 ## Install
 
@@ -55,6 +52,3 @@ Or just tap the Nomacode icon on your home screen.
 - Multiple sessions with tabs
 - Keyboard-driven interface
 
-## License
-
-MIT
