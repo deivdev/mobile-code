@@ -20,12 +20,12 @@ router.post('/', (req, res) => {
   try {
     const { repoId, tool, cols, rows } = req.body;
 
-    // Validate tool is available
-    if (tool && !toolDetector.isToolAvailable(tool)) {
-      const toolInfo = toolDetector.getToolInfo(tool);
-      const installHint = toolInfo?.installCmd ? `\nInstall with: ${toolInfo.installCmd}` : '';
+    // Validate tool exists in our list (but skip slow availability re-check)
+    // The frontend already shows only available tools, and if the tool
+    // isn't actually working, the session will fail with a clear error
+    if (tool && !toolDetector.getToolInfo(tool)) {
       return res.status(400).json({
-        error: `Tool "${tool}" is not installed.${installHint}`
+        error: `Unknown tool "${tool}"`
       });
     }
 
