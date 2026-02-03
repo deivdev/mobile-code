@@ -1,30 +1,37 @@
 const { execSync } = require('child_process');
 
+// Check if running in Termux
+const isTermux = !!process.env.TERMUX_VERSION;
+
 // Define available tools with their commands and install instructions
 const TOOLS = {
   'claude-code': {
     command: 'claude',
     name: 'Claude Code',
     installCmd: 'npm install -g @anthropic-ai/claude-code',
-    description: 'Anthropic\'s AI coding assistant'
+    description: 'Anthropic\'s AI coding assistant',
+    requiresProot: false
   },
   'opencode': {
     command: 'opencode',
     name: 'OpenCode',
     installCmd: 'npm install -g opencode-ai',
-    description: 'Open-source AI coding assistant'
+    description: 'Open-source AI coding assistant',
+    requiresProot: true // Requires proot-distro Ubuntu on Termux
   },
   'codex': {
     command: 'codex',
     name: 'Codex',
     installCmd: 'npm install -g @openai/codex',
-    description: 'OpenAI Codex CLI'
+    description: 'OpenAI Codex CLI',
+    requiresProot: true // Requires proot-distro Ubuntu on Termux
   },
   'shell': {
     command: null, // Always available
     name: 'Bash Shell',
     installCmd: null,
-    description: 'Standard terminal shell'
+    description: 'Standard terminal shell',
+    requiresProot: false
   }
 };
 
@@ -33,10 +40,49 @@ let toolCache = null;
 let cacheTime = 0;
 const CACHE_TTL = 30000; // 30 seconds
 
-function commandExists(cmd) {
+// Check if proot-distro is installed
+function isProotDistroInstalled() {
+  try {
+    execSync('which proot-distro', { stdio: 'ignore' });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// Check if Ubuntu is installed in proot-distro
+function isUbuntuInstalled() {
+  try {
+    const result = execSync('proot-distro list', { encoding: 'utf8', timeout: 5000 });
+    return result.includes('ubuntu') && result.includes('installed');
+  } catch {
+    return false;
+  }
+}
+
+// Check if a command exists inside proot-distro Ubuntu
+function commandExistsInProot(cmd) {
+  if (!isProotDistroInstalled() || !isUbuntuInstalled()) {
+    return false;
+  }
+
+  try {
+    execSync(`proot-distro login ubuntu -- which ${cmd}`, { stdio: 'ignore', timeout: 10000 });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function commandExists(cmd, requiresProot = false) {
   // Validate command name to prevent injection (extra safety layer)
   if (!/^[a-zA-Z0-9_-]+$/.test(cmd)) {
     return false;
+  }
+
+  // If tool requires proot and we're on Termux, check inside proot-distro
+  if (requiresProot && isTermux) {
+    return commandExistsInProot(cmd);
   }
 
   const isWindows = process.platform === 'win32';
@@ -102,14 +148,15 @@ function detectTools() {
       id,
       name: tool.name,
       description: tool.description,
-      installCmd: tool.installCmd
+      installCmd: tool.installCmd,
+      requiresProot: tool.requiresProot && isTermux
     };
 
     if (tool.command === null) {
       // Shell is always available
       info.available = true;
       available.push(info);
-    } else if (commandExists(tool.command)) {
+    } else if (commandExists(tool.command, tool.requiresProot)) {
       info.available = true;
       available.push(info);
     } else {
@@ -159,5 +206,8 @@ module.exports = {
   isToolAvailable,
   getToolInfo,
   clearCache,
+  isProotDistroInstalled,
+  isUbuntuInstalled,
+  isTermux,
   TOOLS
 };

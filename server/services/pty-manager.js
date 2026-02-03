@@ -1,6 +1,7 @@
 const os = require('os');
 const path = require('path');
 const { spawn, spawnSync } = require('child_process');
+const toolDetector = require('./tool-detector');
 
 // Detect available PTY method
 let ptyMethod = 'direct'; // 'node-pty', 'script', or 'direct'
@@ -54,18 +55,39 @@ function createSession(id, options = {}) {
   let args = [];
 
   if (tool) {
+    const toolInfo = toolDetector.getToolInfo(tool);
+    const requiresProot = toolInfo?.requiresProot && toolDetector.isTermux;
+
     switch (tool) {
       case 'claude-code':
         command = 'claude';
         args = [];
         break;
       case 'opencode':
-        command = 'opencode';
-        args = [];
+        if (requiresProot) {
+          // Run via proot-distro Ubuntu with nvm environment
+          command = 'proot-distro';
+          args = ['login', 'ubuntu', '--shared-tmp', '--bind', cwd + ':/workspace', '--',
+            'bash', '-c',
+            `cd /workspace && export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" && opencode`
+          ];
+        } else {
+          command = 'opencode';
+          args = [];
+        }
         break;
       case 'codex':
-        command = 'codex';
-        args = [];
+        if (requiresProot) {
+          // Run via proot-distro Ubuntu with nvm environment
+          command = 'proot-distro';
+          args = ['login', 'ubuntu', '--shared-tmp', '--bind', cwd + ':/workspace', '--',
+            'bash', '-c',
+            `cd /workspace && export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" && codex`
+          ];
+        } else {
+          command = 'codex';
+          args = [];
+        }
         break;
       default:
         command = defaultShell;
