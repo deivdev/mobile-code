@@ -8,6 +8,7 @@ const sessionsApi = require('./api/sessions');
 const settingsApi = require('./api/settings');
 const toolsApi = require('./api/tools');
 const config = require('./services/config');
+const { version } = require('../package.json');
 
 const app = express();
 const server = http.createServer(app);
@@ -29,7 +30,7 @@ app.use('/api/tools', toolsApi);
 // Health check
 app.get('/api/health', (req, res) => {
   const { getPtyMethod } = require('./services/pty-manager');
-  res.json({ status: 'ok', version: '0.1.0', pty: getPtyMethod() });
+  res.json({ status: 'ok', version, pty: getPtyMethod() });
 });
 
 // Setup WebSocket for terminal I/O
@@ -57,7 +58,7 @@ function openBrowser(url) {
 server.listen(PORT, '127.0.0.1', () => {
   console.log(`
 ┌─────────────────────────────────────────┐
-│         📱 Nomacode v0.1.0              │
+│         📱 Nomacode v${version.padEnd(19)}│
 ├─────────────────────────────────────────┤
 │                                         │
 │  Server running at:                     │
