@@ -32,6 +32,9 @@ class Nomacode {
     // Setup viewport handling for keyboard
     this.setupViewport();
 
+    // Bind events early so UI is interactive during data loading
+    this.bindEvents();
+
     // Check server connectivity first
     const online = await this.checkServer();
 
@@ -47,7 +50,6 @@ class Nomacode {
     await this.loadSessions();
 
     this.connectWebSocket();
-    this.bindEvents();
     this.updateUI();
 
     // Show welcome or restore session
@@ -900,14 +902,17 @@ class Nomacode {
       `<option value="${r.id}">${this.escapeHtml(r.name)}</option>`
     ).join('');
 
-    // Build tool options from available tools
-    const toolOptions = this.tools.available.map(t =>
+    // Build tool options from available tools (fallback to shell if not loaded yet)
+    const availableTools = this.tools?.available?.length > 0
+      ? this.tools.available
+      : [{ id: 'shell', name: 'Bash Shell' }];
+    const toolOptions = availableTools.map(t =>
       `<option value="${t.id}">${this.escapeHtml(t.name)}</option>`
     ).join('');
 
     // Build unavailable tools with install buttons
     let unavailableHint = '';
-    if (this.tools.unavailable.length > 0) {
+    if (this.tools?.unavailable?.length > 0) {
       const hints = this.tools.unavailable.map(t =>
         `<div class="install-hint">
           <span class="hint-name">${this.escapeHtml(t.name)}</span>
@@ -944,7 +949,7 @@ class Nomacode {
     `);
 
     // Set default tool
-    document.getElementById('new-tool').value = this.tools.defaultTool;
+    document.getElementById('new-tool').value = this.tools?.defaultTool || 'shell';
   }
 
   submitNewSession() {
@@ -1033,8 +1038,11 @@ class Nomacode {
   }
 
   showSettingsModal() {
-    // Build tool options from available tools
-    const toolOptions = this.tools.available.map(t =>
+    // Build tool options from available tools (fallback to shell if not loaded yet)
+    const availableTools = this.tools?.available?.length > 0
+      ? this.tools.available
+      : [{ id: 'shell', name: 'Bash Shell' }];
+    const toolOptions = availableTools.map(t =>
       `<option value="${t.id}">${this.escapeHtml(t.name)}</option>`
     ).join('');
 
