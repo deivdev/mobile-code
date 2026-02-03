@@ -52,9 +52,13 @@ function isProotDistroInstalled() {
 
 // Check if Ubuntu is installed in proot-distro
 function isUbuntuInstalled() {
+  if (!isProotDistroInstalled()) {
+    return false;
+  }
   try {
-    const result = execSync('proot-distro list', { encoding: 'utf8', timeout: 5000 });
-    return result.includes('ubuntu') && result.includes('installed');
+    // Try to actually login to ubuntu - most reliable check
+    execSync('proot-distro login ubuntu -- echo ok', { stdio: 'ignore', timeout: 10000 });
+    return true;
   } catch {
     return false;
   }
