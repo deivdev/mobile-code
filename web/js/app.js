@@ -20,9 +20,6 @@ class Nomacode {
     // Physical keyboard shift state
     this.shiftHeld = false;
 
-    // Gesture state
-    this.touchStart = null;
-    this.gestureThreshold = 50;
 
     // Claude Code mode tracking
     this.claudeMode = null;
@@ -1323,9 +1320,6 @@ class Nomacode {
 
     // Key toolbar
     this.bindKeyToolbar();
-
-    // Touch gestures
-    this.bindGestures();
   }
 
   // ─── Key Toolbar ────────────────────────────────────────────
@@ -1427,85 +1421,6 @@ class Nomacode {
 
     // Clear modifiers after sending
     this.clearModifiers();
-  }
-
-  // ─── Touch Gestures ─────────────────────────────────────────
-
-  bindGestures() {
-    const container = document.getElementById('terminal-container');
-    if (!container) return;
-
-    container.addEventListener('touchstart', e => {
-      if (e.touches.length === 1) {
-        this.touchStart = {
-          x: e.touches[0].clientX,
-          y: e.touches[0].clientY,
-          time: Date.now()
-        };
-      }
-    }, { passive: true });
-
-    container.addEventListener('touchend', e => {
-      if (!this.touchStart) return;
-
-      const touch = e.changedTouches[0];
-      const dx = touch.clientX - this.touchStart.x;
-      const dy = touch.clientY - this.touchStart.y;
-      const dt = Date.now() - this.touchStart.time;
-
-      // Must be a quick swipe (< 300ms)
-      if (dt > 300) {
-        this.touchStart = null;
-        return;
-      }
-
-      const absDx = Math.abs(dx);
-      const absDy = Math.abs(dy);
-
-      // Horizontal swipe
-      if (absDx > this.gestureThreshold && absDx > absDy * 1.5) {
-        if (dx < 0) {
-          // Swipe left → ESC
-          this.sendKey('Escape');
-          this.showGestureFeedback('ESC');
-        } else {
-          // Swipe right → TAB
-          this.sendKey('Tab');
-          this.showGestureFeedback('TAB');
-        }
-      }
-      // Vertical swipe
-      else if (absDy > this.gestureThreshold && absDy > absDx * 1.5) {
-        if (dy > 0) {
-          // Swipe down → Ctrl+C
-          this.sendInput(this.activeSessionId, '\x03');
-          this.showGestureFeedback('Ctrl+C');
-        } else {
-          // Swipe up → Ctrl+Z
-          this.sendInput(this.activeSessionId, '\x1a');
-          this.showGestureFeedback('Ctrl+Z');
-        }
-      }
-
-      this.touchStart = null;
-    }, { passive: true });
-  }
-
-  showGestureFeedback(text) {
-    let indicator = document.querySelector('.gesture-indicator');
-
-    if (!indicator) {
-      indicator = document.createElement('div');
-      indicator.className = 'gesture-indicator';
-      document.body.appendChild(indicator);
-    }
-
-    indicator.textContent = text;
-    indicator.classList.add('show');
-
-    setTimeout(() => {
-      indicator.classList.remove('show');
-    }, 500);
   }
 
   // ─── Utilities ───────────────────────────────────────────

@@ -497,29 +497,6 @@ body.keyboard-visible #main-content {
   }
 }
 
-/* Gesture feedback */
-.gesture-indicator {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  padding: 16px 24px;
-  background: rgba(0, 0, 0, 0.8);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  color: var(--text-bright);
-  font-size: 14px;
-  font-weight: 600;
-  z-index: 9999;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.15s;
-}
-
-.gesture-indicator.show {
-  opacity: 1;
-}
-
 /* Status Bar */
 #statusbar {
   position: absolute;
