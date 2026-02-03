@@ -102,46 +102,112 @@ const API = {
 
     // Install a tool with streaming output
     install(id, onOutput, onComplete) {
-      const eventSource = new EventSource(`${API.baseUrl}/tools/${id}/install`);
+      // Buffer for incomplete SSE lines across chunks
+      let buffer = '';
+      let completed = false;
+      const MAX_BUFFER_SIZE = 1024 * 1024; // 1MB limit
 
-      // Use POST via fetch to initiate, but we need SSE for streaming
-      // So we'll do a hybrid approach
+      // Safe wrapper to ensure onComplete is only called once
+      function safeComplete(result) {
+        if (!completed) {
+          completed = true;
+          try {
+            onComplete?.(result);
+          } catch (e) {
+            console.error('onComplete callback error:', e);
+          }
+        }
+      }
+
+      // Safe wrapper for onOutput
+      function safeOutput(data) {
+        try {
+          onOutput?.(data);
+        } catch (e) {
+          console.error('onOutput callback error:', e);
+        }
+      }
+
       fetch(`${API.baseUrl}/tools/${id}/install`, { method: 'POST' })
         .then(response => {
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
           const reader = response.body.getReader();
           const decoder = new TextDecoder();
 
+          function processSSELine(line) {
+            if (line.startsWith('data: ')) {
+              try {
+                const event = JSON.parse(line.slice(6));
+                if (event.type === 'start') {
+                  safeOutput(`Installing ${event.data.tool}...\n`);
+                } else if (event.type === 'output') {
+                  safeOutput(event.data);
+                } else if (event.type === 'complete') {
+                  safeComplete(event.data);
+                } else if (event.type === 'error') {
+                  safeOutput(`Error: ${event.data}\n`);
+                  safeComplete({ success: false, error: event.data });
+                }
+              } catch (e) {
+                console.warn('SSE parse error:', e, 'line:', line);
+              }
+            }
+          }
+
           function read() {
             reader.read().then(({ done, value }) => {
-              if (done) return;
+              if (done) {
+                // Flush any remaining bytes from the decoder
+                buffer += decoder.decode();
+                // Process any remaining buffered data
+                if (buffer.trim()) {
+                  processSSELine(buffer.trim());
+                }
+                // If we never received a complete event, notify caller
+                if (!completed) {
+                  safeComplete({ success: false, error: 'Stream ended unexpectedly' });
+                }
+                return;
+              }
 
-              const text = decoder.decode(value);
-              const lines = text.split('\n');
+              // Append new data to buffer
+              buffer += decoder.decode(value, { stream: true });
 
+              // Check buffer size to prevent memory issues
+              if (buffer.length > MAX_BUFFER_SIZE) {
+                console.error('SSE buffer overflow, aborting');
+                reader.cancel();
+                safeComplete({ success: false, error: 'Buffer overflow' });
+                return;
+              }
+
+              // Split on newlines
+              const lines = buffer.split('\n');
+
+              // Keep the last potentially incomplete line in buffer
+              buffer = lines.pop() || '';
+
+              // Process complete lines
               for (const line of lines) {
-                if (line.startsWith('data: ')) {
-                  try {
-                    const event = JSON.parse(line.slice(6));
-                    if (event.type === 'output') {
-                      onOutput?.(event.data);
-                    } else if (event.type === 'complete') {
-                      onComplete?.(event.data);
-                    } else if (event.type === 'error') {
-                      onOutput?.(`Error: ${event.data}\n`);
-                      onComplete?.({ success: false, error: event.data });
-                    }
-                  } catch (e) {}
+                if (line.trim()) {
+                  processSSELine(line);
                 }
               }
 
               read();
+            }).catch(err => {
+              console.error('Stream read error:', err);
+              safeComplete({ success: false, error: err.message });
             });
           }
 
           read();
         })
         .catch(err => {
-          onComplete?.({ success: false, error: err.message });
+          console.error('Fetch error:', err);
+          safeComplete({ success: false, error: err.message });
         });
     }
   },

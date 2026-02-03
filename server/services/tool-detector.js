@@ -11,7 +11,7 @@ const TOOLS = {
   'opencode': {
     command: 'opencode',
     name: 'OpenCode',
-    installCmd: 'npm install -g opencode',
+    installCmd: 'npm install -g opencode-ai',
     description: 'Open-source AI coding assistant'
   },
   'codex': {
@@ -34,11 +34,55 @@ let cacheTime = 0;
 const CACHE_TTL = 30000; // 30 seconds
 
 function commandExists(cmd) {
+  // Validate command name to prevent injection (extra safety layer)
+  if (!/^[a-zA-Z0-9_-]+$/.test(cmd)) {
+    return false;
+  }
+
+  const isWindows = process.platform === 'win32';
+  const whichCmd = isWindows ? 'where' : 'which';
+
   try {
-    execSync(`which ${cmd}`, { stdio: 'ignore' });
+    // First check if command is in PATH
+    execSync(`${whichCmd} ${cmd}`, { stdio: 'ignore' });
+
+    // Then verify it's actually executable by running --help or --version
+    // This catches binary format incompatibilities (e.g., wrong architecture on Termux)
+    // We need to capture stderr to detect binary errors
+    const execOptions = {
+      timeout: 5000,
+      killSignal: 'SIGKILL',
+      encoding: 'utf8',
+      stdio: ['ignore', 'ignore', 'pipe'] // Capture stderr
+    };
+
+    const isBinaryError = (err) => {
+      const errorText = ((err.stderr && err.stderr.toString()) || '') + (err.message || '');
+      return errorText.includes('Exec format error') ||
+             errorText.includes('cannot execute') ||
+             errorText.includes('e_type') ||
+             errorText.includes('Bad CPU type') ||
+             errorText.includes('not executable');
+    };
+
+    // Try --version first (most tools support it), then --help
+    for (const flag of ['--version', '--help']) {
+      try {
+        execSync(`${cmd} ${flag}`, execOptions);
+        return true; // Success - command exists and runs
+      } catch (err) {
+        if (isBinaryError(err)) {
+          return false; // Binary incompatible with this architecture
+        }
+        // Non-zero exit is okay, try next flag
+      }
+    }
+
+    // Both flags failed but not with binary errors - command likely exists
+    // (some tools require subcommands and fail on --help/--version)
     return true;
   } catch {
-    return false;
+    return false; // Command not in PATH
   }
 }
 
