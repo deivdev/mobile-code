@@ -32,6 +32,9 @@ class Nomacode {
     // Setup viewport handling for keyboard
     this.setupViewport();
 
+    // Bind events early so UI is interactive during data loading
+    this.bindEvents();
+
     // Check server connectivity first
     const online = await this.checkServer();
 
@@ -47,7 +50,6 @@ class Nomacode {
     await this.loadSessions();
 
     this.connectWebSocket();
-    this.bindEvents();
     this.updateUI();
 
     // Show welcome or restore session
@@ -497,6 +499,8 @@ class Nomacode {
     const terminal = this.terminals.get(sessionId);
     if (terminal) {
       terminal.wrapper.classList.add('active');
+      // Re-attach to WebSocket session for this terminal
+      this.attachToSession(sessionId);
       setTimeout(() => {
         terminal.fitAddon.fit();
         terminal.term.focus();
@@ -900,15 +904,18 @@ class Nomacode {
       `<option value="${r.id}">${this.escapeHtml(r.name)}</option>`
     ).join('');
 
-    // Build tool options from available tools
-    const toolOptions = this.tools.available.map(t =>
+    // Build tool options from available tools (fallback to shell if not loaded yet)
+    const availableTools = this.tools?.available?.length > 0
+      ? this.tools.available
+      : [{ id: 'shell', name: 'Bash Shell' }];
+    const toolOptions = availableTools.map(t =>
       `<option value="${t.id}">${this.escapeHtml(t.name)}</option>`
     ).join('');
 
     // Build unavailable tools with install buttons (exclude coming soon tools)
     const comingSoonIds = ['opencode', 'codex'];
     let unavailableHint = '';
-    const installableTools = this.tools.unavailable.filter(t => !comingSoonIds.includes(t.id));
+    const installableTools = (this.tools?.unavailable || []).filter(t => !comingSoonIds.includes(t.id));
     if (installableTools.length > 0) {
       const hints = installableTools.map(t =>
         `<div class="install-hint">
@@ -926,7 +933,7 @@ class Nomacode {
 
     // Show coming soon tools (if not available)
     let comingSoonHint = '';
-    const comingSoonTools = this.tools.unavailable.filter(t => comingSoonIds.includes(t.id));
+    const comingSoonTools = (this.tools?.unavailable || []).filter(t => comingSoonIds.includes(t.id));
     if (comingSoonTools.length > 0) {
       const hints = comingSoonTools.map(t =>
         `<div class="coming-soon-hint">
@@ -964,7 +971,7 @@ class Nomacode {
     `);
 
     // Set default tool
-    document.getElementById('new-tool').value = this.tools.defaultTool;
+    document.getElementById('new-tool').value = this.tools?.defaultTool || 'shell';
   }
 
   submitNewSession() {
@@ -1053,8 +1060,11 @@ class Nomacode {
   }
 
   showSettingsModal() {
-    // Build tool options from available tools
-    const toolOptions = this.tools.available.map(t =>
+    // Build tool options from available tools (fallback to shell if not loaded yet)
+    const availableTools = this.tools?.available?.length > 0
+      ? this.tools.available
+      : [{ id: 'shell', name: 'Bash Shell' }];
+    const toolOptions = availableTools.map(t =>
       `<option value="${t.id}">${this.escapeHtml(t.name)}</option>`
     ).join('');
 

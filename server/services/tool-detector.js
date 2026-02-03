@@ -33,7 +33,7 @@ let toolCache = null;
 let cacheTime = 0;
 const CACHE_TTL = 30000; // 30 seconds
 
-function commandExists(cmd) {
+function commandExists(cmd, fastCheck = false) {
   // Validate command name to prevent injection (extra safety layer)
   if (!/^[a-zA-Z0-9_-]+$/.test(cmd)) {
     return false;
@@ -45,6 +45,11 @@ function commandExists(cmd) {
   try {
     // First check if command is in PATH
     execSync(`${whichCmd} ${cmd}`, { stdio: 'ignore' });
+
+    // Fast check mode: skip version verification (much faster for session creation)
+    if (fastCheck) {
+      return true;
+    }
 
     // Then verify it's actually executable by running --help or --version
     // This catches binary format incompatibilities (e.g., wrong architecture on Termux)
@@ -140,8 +145,19 @@ function getDefaultTool() {
 
 function isToolAvailable(toolId) {
   if (!toolId || toolId === 'shell') return true;
-  const { available } = detectTools();
-  return available.some(t => t.id === toolId);
+
+  // Fast path: check cache first without full detection
+  const now = Date.now();
+  if (toolCache && (now - cacheTime) < CACHE_TTL) {
+    return toolCache.available.some(t => t.id === toolId);
+  }
+
+  // Cache stale: only check the specific tool with fast mode (skips slow --version check)
+  const tool = TOOLS[toolId];
+  if (!tool) return false;
+  if (tool.command === null) return true;
+
+  return commandExists(tool.command, true); // fast check
 }
 
 function getToolInfo(toolId) {
