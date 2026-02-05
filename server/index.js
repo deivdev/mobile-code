@@ -2,7 +2,7 @@ const express = require('express');
 const http = require('http');
 const path = require('path');
 const { exec } = require('child_process');
-const { setupWebSocket } = require('./websocket');
+const { setupWebSocket, broadcastOpenUrl } = require('./websocket');
 const reposApi = require('./api/repos');
 const sessionsApi = require('./api/sessions');
 const settingsApi = require('./api/settings');
@@ -26,6 +26,17 @@ app.use('/api/repos', reposApi);
 app.use('/api/sessions', sessionsApi);
 app.use('/api/settings', settingsApi);
 app.use('/api/tools', toolsApi);
+
+// Open URL endpoint - called by browser helper script in sessions
+app.post('/api/open-url', (req, res) => {
+  const { url } = req.body;
+  if (url) {
+    broadcastOpenUrl(url);
+    res.json({ status: 'ok' });
+  } else {
+    res.status(400).json({ error: 'Missing url' });
+  }
+});
 
 // Health check
 app.get('/api/health', (req, res) => {

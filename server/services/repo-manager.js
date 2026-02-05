@@ -4,7 +4,28 @@ const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const config = require('./config');
 
-async function cloneRepo(url, name) {
+/**
+ * Build a URL with embedded credentials for authentication.
+ * Credentials are URL-encoded to handle special characters.
+ */
+function buildAuthenticatedUrl(url, username, token) {
+  if (!username || !token) {
+    return url;
+  }
+
+  try {
+    const parsed = new URL(url);
+    parsed.username = encodeURIComponent(username);
+    parsed.password = encodeURIComponent(token);
+    return parsed.toString();
+  } catch (e) {
+    // If URL parsing fails, return original
+    return url;
+  }
+}
+
+async function cloneRepo(url, name, options = {}) {
+  const { username, token } = options;
   const reposDir = config.getReposDir();
   const repoPath = path.join(reposDir, name);
 
@@ -13,16 +34,39 @@ async function cloneRepo(url, name) {
     throw new Error(`Repository directory already exists: ${name}`);
   }
 
+  // Build authenticated URL if credentials provided
+  const cloneUrl = buildAuthenticatedUrl(url, username, token);
+
   // Clone the repository
   const git = simpleGit();
-  await git.clone(url, repoPath);
+  try {
+    await git.clone(cloneUrl, repoPath);
+  } catch (err) {
+    // Clean up partial clone on failure
+    if (fs.existsSync(repoPath)) {
+      fs.rmSync(repoPath, { recursive: true, force: true });
+    }
 
-  // Create repo entry
+    // Provide more helpful error messages for auth failures
+    const errorMsg = err.message || '';
+    if (errorMsg.includes('Authentication failed') ||
+        errorMsg.includes('could not read Username') ||
+        errorMsg.includes('Invalid username or password') ||
+        errorMsg.includes('401')) {
+      throw new Error('Authentication failed. Check your username and token.');
+    }
+    if (errorMsg.includes('Repository not found') || errorMsg.includes('404')) {
+      throw new Error('Repository not found. It may be private - try adding credentials.');
+    }
+    throw err;
+  }
+
+  // Create repo entry - store original URL without credentials
   const repo = {
     id: uuidv4(),
     name: name,
     path: repoPath,
-    remoteUrl: url,
+    remoteUrl: url,  // Never store credentials
     createdAt: new Date().toISOString(),
     lastOpened: new Date().toISOString()
   };

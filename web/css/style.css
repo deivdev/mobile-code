@@ -836,6 +836,54 @@ body.keyboard-visible #statusbar {
   cursor: pointer;
 }
 
+/* Auth section (collapsible) */
+.auth-section {
+  margin-bottom: 16px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.auth-toggle {
+  padding: 10px 12px;
+  color: var(--text-dim);
+  font-size: 12px;
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+}
+
+.auth-toggle::-webkit-details-marker {
+  display: none;
+}
+
+.auth-toggle::before {
+  content: '\25B6';
+  display: inline-block;
+  margin-right: 8px;
+  font-size: 10px;
+  transition: transform 0.15s;
+}
+
+.auth-section[open] .auth-toggle::before {
+  transform: rotate(90deg);
+}
+
+.auth-toggle:hover {
+  color: var(--text);
+}
+
+.auth-fields {
+  padding: 0 12px 12px;
+}
+
+.auth-fields .form-group {
+  margin-bottom: 12px;
+}
+
+.auth-fields .form-group:last-child {
+  margin-bottom: 0;
+}
+
 .form-actions {
   display: flex;
   gap: 8px;

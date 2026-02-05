@@ -336,6 +336,11 @@ class Nomacode {
       case 'error':
         this.toast(msg.message, 'error');
         break;
+      case 'open-url':
+        if (msg.url) {
+          window.open(msg.url, '_blank');
+        }
+        break;
     }
   }
 
@@ -596,9 +601,9 @@ class Nomacode {
 
   // ─── Repository Management ───────────────────────────────
 
-  async cloneRepo(url, name) {
+  async cloneRepo(url, name, username, token) {
     try {
-      await API.repos.clone(url, name);
+      await API.repos.clone(url, name, username, token);
       await this.loadRepos();
       this.toast(`Cloned ${name}`, 'success');
       this.updateRecentRepos();
@@ -988,6 +993,19 @@ class Nomacode {
         <label class="form-label">Local name</label>
         <input type="text" id="clone-name" class="form-input" placeholder="repo-name">
       </div>
+      <details class="auth-section">
+        <summary class="auth-toggle">Authentication (for private repos)</summary>
+        <div class="auth-fields">
+          <div class="form-group">
+            <label class="form-label">Username</label>
+            <input type="text" id="clone-username" class="form-input" placeholder="github-username">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Token <span class="form-label-muted">(PAT or password)</span></label>
+            <input type="password" id="clone-token" class="form-input" placeholder="ghp_xxxxxxxxxxxx">
+          </div>
+        </div>
+      </details>
       <div class="form-actions">
         <button class="btn" onclick="app.hideModal()">Cancel</button>
         <button class="btn btn-primary" onclick="app.submitClone()">Clone</button>
@@ -1009,6 +1027,8 @@ class Nomacode {
   async submitClone() {
     const url = document.getElementById('clone-url').value.trim();
     const name = document.getElementById('clone-name').value.trim();
+    const username = document.getElementById('clone-username')?.value.trim() || '';
+    const token = document.getElementById('clone-token')?.value.trim() || '';
 
     if (!url || !name) {
       this.toast('Please fill all fields', 'error');
@@ -1016,7 +1036,7 @@ class Nomacode {
     }
 
     this.hideModal();
-    await this.cloneRepo(url, name);
+    await this.cloneRepo(url, name, username, token);
   }
 
   showDeleteRepoModal() {

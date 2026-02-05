@@ -10,7 +10,7 @@
 
 > **My first open source project ever!** Feedback and contributions welcome.
 
-Code anywhere, like a local. Run Claude Code, OpenCode, or Codex directly from Android using Termux.
+Code anywhere, like a local. Run Claude Code directly from Android using Termux.
 
 <img src="https://github.com/user-attachments/assets/b105141c-31f8-4e80-8239-fa8d2561d76d" width="300"> <img src="https://github.com/user-attachments/assets/e14304a0-8393-4791-baf5-4f4561466005" width="300">
 
@@ -62,7 +62,7 @@ Or just tap the Nomacode icon on your home screen.
 
 - Terminal emulator (xterm.js)
 - Clone and manage git repositories
-- Run Claude Code, OpenCode, Codex
+- Run Claude Code (OpenCode and Codex not yet supported—incompatible with Termux, proot-distro too slow)
 - Multiple sessions with tabs
 - Keyboard-driven interface
 - Touch gestures for common keys

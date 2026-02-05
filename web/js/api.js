@@ -35,8 +35,11 @@ const API = {
       return API.request('GET', `/repos/${id}`);
     },
 
-    clone(url, name) {
-      return API.request('POST', '/repos', { url, name });
+    clone(url, name, username, token) {
+      const body = { url, name };
+      if (username) body.username = username;
+      if (token) body.token = token;
+      return API.request('POST', '/repos', body);
     },
 
     create(name) {

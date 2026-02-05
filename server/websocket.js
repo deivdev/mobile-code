@@ -1,8 +1,11 @@
 const WebSocket = require('ws');
 const { getSession, writeToSession, resizeSession } = require('./services/pty-manager');
 
+let wssInstance = null;
+
 function setupWebSocket(server) {
   const wss = new WebSocket.Server({ server });
+  wssInstance = wss;
 
   wss.on('connection', (ws) => {
     let attachedSessionId = null;
@@ -109,4 +112,19 @@ function setupWebSocket(server) {
   return wss;
 }
 
-module.exports = { setupWebSocket };
+function broadcastOpenUrl(url) {
+  if (!wssInstance) return;
+
+  const message = JSON.stringify({
+    type: 'open-url',
+    url: url
+  });
+
+  wssInstance.clients.forEach((client) => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(message);
+    }
+  });
+}
+
+module.exports = { setupWebSocket, broadcastOpenUrl };

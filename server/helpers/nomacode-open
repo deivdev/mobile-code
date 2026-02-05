@@ -1,0 +1,18 @@
+#!/bin/sh
+# Browser helper script for Nomacode
+# Called by Claude Code (and other tools) when they need to open a URL
+# Sends the URL to the Nomacode server which broadcasts it to the web client
+
+URL="$1"
+PORT="${NOMACODE_PORT:-3000}"
+
+if [ -z "$URL" ]; then
+  exit 0
+fi
+
+# Send URL to Nomacode server
+curl -s -X POST "http://127.0.0.1:${PORT}/api/open-url" \
+  -H "Content-Type: application/json" \
+  -d "{\"url\":\"$URL\"}" > /dev/null 2>&1
+
+exit 0

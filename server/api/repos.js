@@ -15,7 +15,7 @@ router.get('/', (req, res) => {
 // Clone or create repo
 router.post('/', async (req, res) => {
   try {
-    const { url, name } = req.body;
+    const { url, name, username, token } = req.body;
 
     if (!name) {
       return res.status(400).json({ error: 'Name is required' });
@@ -30,13 +30,21 @@ router.post('/', async (req, res) => {
 
     let repo;
     if (url) {
-      repo = await repoManager.cloneRepo(url, name);
+      // Pass credentials as options (used only for clone, never stored)
+      const options = {};
+      if (username) options.username = username;
+      if (token) options.token = token;
+      repo = await repoManager.cloneRepo(url, name, options);
     } else {
       repo = repoManager.createRepo(name);
     }
 
     res.status(201).json(repo);
   } catch (err) {
+    // Use 401 for auth-specific errors
+    if (err.message.includes('Authentication failed')) {
+      return res.status(401).json({ error: err.message });
+    }
     res.status(500).json({ error: err.message });
   }
 });
