@@ -49,23 +49,13 @@ Or just tap the Nomacode icon on your home screen.
 | `Shift+C` | Clone repository |
 | `Shift+1-9` | Switch to session |
 
-### Touch Gestures
-
-| Gesture | Action |
-|---------|--------|
-| Swipe left | ESC |
-| Swipe right | TAB |
-| Swipe down | Ctrl+C |
-| Swipe up | Ctrl+Z |
-
 ## Features
 
 - Terminal emulator (xterm.js)
 - Clone and manage git repositories
-- Run Claude Code (OpenCode and Codex not yet supported—incompatible with Termux, proot-distro too slow)
+- Run Claude Code
 - Multiple sessions with tabs
 - Keyboard-driven interface
-- Touch gestures for common keys
 
 ## Roadmap
 
@@ -80,6 +70,20 @@ Currently Nomacode requires Termux, which is Android-only. iOS implementation id
 - **Native iOS app** - WebSocket client that connects to a remote Nomacode server
 
 Have ideas? Open an issue or PR.
+
+### OpenCode & Codex Support
+
+Currently only Claude Code works natively in Termux. OpenCode and Codex require a full Linux environment (proot-distro), which is too slow for practical use on mobile devices.
+
+**Current status:**
+- **Claude Code** - Works natively in Termux
+- **OpenCode** - Requires proot-distro (too slow)
+- **Codex** - Requires proot-distro (too slow)
+
+**Possible solutions being explored:**
+- Native ARM builds for Termux
+- Lightweight alternatives that run directly in Termux
+- Performance optimizations for proot-distro
 
 ### Community Standards
 
