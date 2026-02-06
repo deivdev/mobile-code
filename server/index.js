@@ -7,6 +7,7 @@ const reposApi = require('./api/repos');
 const sessionsApi = require('./api/sessions');
 const settingsApi = require('./api/settings');
 const toolsApi = require('./api/tools');
+const authApi = require('./api/auth');
 const config = require('./services/config');
 const { version } = require('../package.json');
 
@@ -26,6 +27,7 @@ app.use('/api/repos', reposApi);
 app.use('/api/sessions', sessionsApi);
 app.use('/api/settings', settingsApi);
 app.use('/api/tools', toolsApi);
+app.use('/api/auth', authApi);
 
 // Open URL endpoint - called by browser helper script in sessions
 app.post('/api/open-url', (req, res) => {

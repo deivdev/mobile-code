@@ -836,6 +836,84 @@ body.keyboard-visible #statusbar {
   cursor: pointer;
 }
 
+/* GitHub search dropdown */
+.search-container {
+  position: relative;
+}
+
+.search-results {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-height: 280px;
+  overflow-y: auto;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 4px 4px;
+  z-index: 100;
+}
+
+.search-results.hidden {
+  display: none;
+}
+
+.search-item {
+  padding: 10px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.1s;
+}
+
+.search-item:last-child {
+  border-bottom: none;
+}
+
+.search-item:hover {
+  background: var(--bg-lighter);
+}
+
+.search-item-name {
+  color: var(--accent);
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.search-item-desc {
+  color: var(--text-dim);
+  font-size: 11px;
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.search-item-meta {
+  display: flex;
+  gap: 12px;
+  margin-top: 4px;
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+.search-item-meta span {
+  opacity: 0.8;
+}
+
+.search-loading,
+.search-empty,
+.search-error {
+  padding: 12px;
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 12px;
+}
+
+.search-error {
+  color: var(--red);
+}
+
 /* Auth section (collapsible) */
 .auth-section {
   margin-bottom: 16px;
@@ -955,6 +1033,90 @@ body.keyboard-visible #statusbar {
   to {
     opacity: 1;
     transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* URL Banner (auth link detection) */
+.url-banner {
+  position: fixed;
+  bottom: 80px;
+  left: 8px;
+  right: 8px;
+  background: var(--bg-light);
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  padding: 14px 16px;
+  z-index: 1500;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: bannerSlideUp 0.2s ease;
+}
+
+.url-banner-label {
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.url-banner-url {
+  color: var(--text-dim);
+  font-size: 11px;
+  word-break: break-all;
+  line-height: 1.3;
+}
+
+.url-banner-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.url-banner-open {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 16px;
+  background: var(--accent);
+  color: var(--bg);
+  border: none;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  min-height: 44px;
+}
+
+.url-banner-open:active {
+  background: var(--accent-dim);
+}
+
+.url-banner-dismiss {
+  padding: 12px 16px;
+  background: var(--bg-lighter);
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  cursor: pointer;
+  min-height: 44px;
+}
+
+.url-banner-dismiss:active {
+  background: var(--border);
+}
+
+@keyframes bannerSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
@@ -1123,4 +1285,193 @@ body.keyboard-visible #statusbar {
 .offline-retry:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* GitHub OAuth Device Flow */
+.github-auth-section {
+  margin-bottom: 16px;
+}
+
+.github-auth-section .form-hint {
+  color: var(--text-dim);
+  font-size: 12px;
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.github-auth-section .form-hint a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.github-auth-section .form-hint a:hover {
+  text-decoration: underline;
+}
+
+.btn-github {
+  width: 100%;
+  padding: 10px 16px;
+  background: var(--bg-lighter);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-github:hover {
+  background: var(--border);
+  color: var(--text-bright);
+}
+
+.device-flow-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px;
+  margin: 8px 0;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.user-code {
+  font-family: var(--font-mono);
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  color: var(--text-bright);
+  user-select: all;
+}
+
+.btn-copy {
+  padding: 6px 12px;
+  background: var(--bg-lighter);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-copy:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+.device-flow-link {
+  display: block;
+  text-align: center;
+  color: var(--accent);
+  font-size: 12px;
+  text-decoration: none;
+  margin-bottom: 12px;
+}
+
+.device-flow-link:hover {
+  text-decoration: underline;
+}
+
+.device-flow-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--text-dim);
+  font-size: 12px;
+}
+
+.device-flow-status .spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.device-flow-error {
+  color: var(--red);
+  font-size: 12px;
+  text-align: center;
+}
+
+.device-flow-error a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.device-flow-error a:hover {
+  text-decoration: underline;
+}
+
+.auth-connected {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--bg);
+  border: 1px solid var(--green);
+  border-radius: 4px;
+  color: var(--text);
+  font-size: 13px;
+}
+
+.auth-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--green);
+  flex-shrink: 0;
+}
+
+.auth-logout-link {
+  margin-left: auto;
+  color: var(--text-dim);
+  font-size: 11px;
+  text-decoration: none;
+}
+
+.auth-logout-link:hover {
+  color: var(--red);
+}
+
+.manual-auth-section {
+  margin-bottom: 16px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.manual-auth-section .auth-toggle {
+  padding: 10px 12px;
+  color: var(--text-dim);
+  font-size: 12px;
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+}
+
+.manual-auth-section .auth-toggle::-webkit-details-marker {
+  display: none;
+}
+
+.manual-auth-section .auth-toggle::before {
+  content: '\25B6';
+  display: inline-block;
+  margin-right: 8px;
+  font-size: 10px;
+  transition: transform 0.15s;
+}
+
+.manual-auth-section[open] .auth-toggle::before {
+  transform: rotate(90deg);
+}
+
+.manual-auth-section .auth-toggle:hover {
+  color: var(--text);
 }

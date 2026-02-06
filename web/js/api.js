@@ -215,6 +215,24 @@ const API = {
     }
   },
 
+  // Auth
+  auth: {
+    github: {
+      startDeviceFlow(clientId) {
+        return API.request('POST', '/auth/github/device', { clientId });
+      },
+      pollToken(clientId, deviceCode) {
+        return API.request('POST', '/auth/github/poll', { clientId, deviceCode });
+      },
+      status() {
+        return API.request('GET', '/auth/github/status');
+      },
+      logout() {
+        return API.request('DELETE', '/auth/github');
+      }
+    }
+  },
+
   // Health check
   health() {
     return API.request('GET', '/health');

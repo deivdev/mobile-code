@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const repoManager = require('../services/repo-manager');
+const githubAuth = require('../services/github-auth');
 
 // List all repos
 router.get('/', (req, res) => {
@@ -34,6 +35,16 @@ router.post('/', async (req, res) => {
       const options = {};
       if (username) options.username = username;
       if (token) options.token = token;
+
+      // Auto-inject stored GitHub credentials for github.com URLs
+      if (!options.token && /^https?:\/\/(www\.)?github\.com[\/:]/.test(url)) {
+        const auth = githubAuth.getStoredAuth();
+        if (auth && auth.accessToken) {
+          options.username = auth.username;
+          options.token = auth.accessToken;
+        }
+      }
+
       repo = await repoManager.cloneRepo(url, name, options);
     } else {
       repo = repoManager.createRepo(name);

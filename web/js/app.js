@@ -23,6 +23,10 @@ class Nomacode {
 
     // Claude Code mode tracking
     this.claudeMode = null;
+
+    // GitHub auth state
+    this.githubAuth = { authenticated: false, username: null };
+    this.deviceFlowPollInterval = null;
   }
 
   async init() {
@@ -42,6 +46,7 @@ class Nomacode {
     }
 
     await this.loadSettings();
+    await this.loadGitHubAuthStatus();
     await this.loadTools();
     await this.loadRepos();
     await this.loadSessions();
@@ -320,6 +325,7 @@ class Nomacode {
           if (msg.sessionId === this.activeSessionId) {
             this.detectClaudeMode(msg.data);
           }
+          this.detectOutputUrl(msg.data);
         }
         break;
       case 'exit':
@@ -730,6 +736,80 @@ class Nomacode {
     }
   }
 
+  detectOutputUrl(data) {
+    // Strip ANSI escape codes
+    const clean = data.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '')
+                       .replace(/\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)/g, '')
+                       .replace(/\x1b[()][0-9A-B]/g, '');
+
+    // Buffer for handling URLs split across chunks
+    this._urlBuffer = ((this._urlBuffer || '') + clean).slice(-2000);
+
+    const urlRegex = /https?:\/\/[^\s"'<>\x00-\x1f\])}]+/g;
+    let match;
+    if (!this._shownUrls) this._shownUrls = new Set();
+
+    while ((match = urlRegex.exec(this._urlBuffer)) !== null) {
+      let url = match[0].replace(/[.,;:!?]+$/, '');
+      if (this._shownUrls.has(url)) continue;
+
+      // Only show banner for auth/login URLs to avoid noise
+      if (/oauth|authorize|\/login|\/auth[\/?]|anthropic\.com|claude\.ai|\/device/i.test(url)) {
+        this._shownUrls.add(url);
+        this.showUrlBanner(url);
+      }
+    }
+  }
+
+  showUrlBanner(url) {
+    // Remove existing banner
+    const existing = document.getElementById('url-banner');
+    if (existing) existing.remove();
+    if (this._urlBannerTimer) clearTimeout(this._urlBannerTimer);
+
+    const banner = document.createElement('div');
+    banner.id = 'url-banner';
+    banner.className = 'url-banner';
+
+    const label = document.createElement('div');
+    label.className = 'url-banner-label';
+    label.textContent = 'Authentication link detected';
+
+    const urlText = document.createElement('div');
+    urlText.className = 'url-banner-url';
+    urlText.textContent = url.length > 60 ? url.slice(0, 57) + '...' : url;
+
+    const actions = document.createElement('div');
+    actions.className = 'url-banner-actions';
+
+    const openBtn = document.createElement('a');
+    openBtn.href = url;
+    openBtn.target = '_blank';
+    openBtn.rel = 'noopener';
+    openBtn.className = 'url-banner-open';
+    openBtn.textContent = 'Open in Browser';
+    openBtn.addEventListener('click', () => {
+      setTimeout(() => banner.remove(), 500);
+    });
+
+    const dismissBtn = document.createElement('button');
+    dismissBtn.className = 'url-banner-dismiss';
+    dismissBtn.textContent = 'Dismiss';
+    dismissBtn.addEventListener('click', () => banner.remove());
+
+    actions.appendChild(openBtn);
+    actions.appendChild(dismissBtn);
+    banner.appendChild(label);
+    banner.appendChild(urlText);
+    banner.appendChild(actions);
+
+    document.getElementById('app').appendChild(banner);
+
+    this._urlBannerTimer = setTimeout(() => {
+      if (banner.parentNode) banner.remove();
+    }, 30000);
+  }
+
   cycleMode() {
     // Iterate through: NORMAL → PLAN → ACCEPT → NORMAL
     const modes = [null, 'PLAN', 'ACCEPT'];
@@ -896,6 +976,10 @@ class Nomacode {
   }
 
   hideModal() {
+    if (this.deviceFlowPollInterval) {
+      clearInterval(this.deviceFlowPollInterval);
+      this.deviceFlowPollInterval = null;
+    }
     document.getElementById('modal-overlay').classList.add('hidden');
     const terminal = this.terminals.get(this.activeSessionId);
     if (terminal) terminal.term.focus();
@@ -984,7 +1068,22 @@ class Nomacode {
   }
 
   showCloneModal() {
+    const authSection = this.githubAuth.authenticated
+      ? `<div class="auth-connected">
+           <span class="auth-status-dot"></span>
+           Connected as <strong>@${this.escapeHtml(this.githubAuth.username)}</strong>
+           <a href="#" class="auth-logout-link" onclick="event.preventDefault(); app.githubLogout()">Logout</a>
+         </div>`
+      : `<button class="btn btn-github" onclick="app.githubLogin()">Login with GitHub</button>`;
+
     this.showModal('Clone Repository', `
+      <div class="form-group">
+        <label class="form-label">Search GitHub <span class="form-label-muted">(or paste URL)</span></label>
+        <div class="search-container">
+          <input type="text" id="clone-search" class="form-input" placeholder="Search repositories..." autocomplete="off">
+          <div id="search-results" class="search-results hidden"></div>
+        </div>
+      </div>
       <div class="form-group">
         <label class="form-label">Repository URL</label>
         <input type="text" id="clone-url" class="form-input" placeholder="https://github.com/user/repo.git">
@@ -993,8 +1092,12 @@ class Nomacode {
         <label class="form-label">Local name</label>
         <input type="text" id="clone-name" class="form-input" placeholder="repo-name">
       </div>
-      <details class="auth-section">
-        <summary class="auth-toggle">Authentication (for private repos)</summary>
+      <div class="github-auth-section" id="github-auth-section">
+        <label class="form-label">Private repos</label>
+        ${authSection}
+      </div>
+      <details class="manual-auth-section">
+        <summary class="auth-toggle">Or enter credentials manually</summary>
         <div class="auth-fields">
           <div class="form-group">
             <label class="form-label">Username</label>
@@ -1012,6 +1115,34 @@ class Nomacode {
       </div>
     `);
 
+    // GitHub search with debounce
+    let searchTimeout = null;
+    const searchInput = document.getElementById('clone-search');
+    const searchResults = document.getElementById('search-results');
+
+    searchInput.addEventListener('input', e => {
+      const query = e.target.value.trim();
+      clearTimeout(searchTimeout);
+
+      if (query.length < 2) {
+        searchResults.classList.add('hidden');
+        return;
+      }
+
+      searchTimeout = setTimeout(() => this.searchGitHub(query), 300);
+    });
+
+    // Close results when clicking outside
+    searchInput.addEventListener('blur', () => {
+      setTimeout(() => searchResults.classList.add('hidden'), 200);
+    });
+
+    searchInput.addEventListener('focus', () => {
+      if (searchResults.children.length > 0) {
+        searchResults.classList.remove('hidden');
+      }
+    });
+
     // Auto-fill local name from URL
     document.getElementById('clone-url').addEventListener('input', e => {
       const url = e.target.value.trim();
@@ -1022,6 +1153,60 @@ class Nomacode {
         nameInput.value = match[1];
       }
     });
+  }
+
+  async searchGitHub(query) {
+    const searchResults = document.getElementById('search-results');
+
+    try {
+      searchResults.innerHTML = '<div class="search-loading">Searching...</div>';
+      searchResults.classList.remove('hidden');
+
+      const response = await fetch(`https://api.github.com/search/repositories?q=${encodeURIComponent(query)}&per_page=8`);
+
+      if (!response.ok) {
+        if (response.status === 403) {
+          searchResults.innerHTML = '<div class="search-error">Rate limit exceeded. Try again later.</div>';
+        } else {
+          searchResults.innerHTML = '<div class="search-error">Search failed</div>';
+        }
+        return;
+      }
+
+      const data = await response.json();
+
+      if (data.items.length === 0) {
+        searchResults.innerHTML = '<div class="search-empty">No repositories found</div>';
+        return;
+      }
+
+      searchResults.innerHTML = data.items.map(repo => `
+        <div class="search-item" data-url="${repo.clone_url}" data-name="${repo.name}">
+          <div class="search-item-name">${this.escapeHtml(repo.full_name)}</div>
+          <div class="search-item-desc">${this.escapeHtml(repo.description || 'No description')}</div>
+          <div class="search-item-meta">
+            <span>${repo.stargazers_count.toLocaleString()} stars</span>
+            <span>${repo.language || 'Unknown'}</span>
+          </div>
+        </div>
+      `).join('');
+
+      // Add click handlers to results
+      searchResults.querySelectorAll('.search-item').forEach(item => {
+        item.addEventListener('mousedown', e => {
+          e.preventDefault();
+          const url = item.dataset.url;
+          const name = item.dataset.name;
+          document.getElementById('clone-url').value = url;
+          document.getElementById('clone-name').value = name;
+          document.getElementById('clone-search').value = '';
+          searchResults.classList.add('hidden');
+        });
+      });
+
+    } catch (err) {
+      searchResults.innerHTML = '<div class="search-error">Search failed</div>';
+    }
   }
 
   async submitClone() {
@@ -1035,8 +1220,20 @@ class Nomacode {
       return;
     }
 
-    this.hideModal();
-    await this.cloneRepo(url, name, username, token);
+    // Show loading state
+    const cloneBtn = document.querySelector('.modal .btn-primary');
+    const originalText = cloneBtn.textContent;
+    cloneBtn.textContent = 'Cloning...';
+    cloneBtn.disabled = true;
+
+    const success = await this.cloneRepo(url, name, username, token);
+    if (success) {
+      this.hideModal();
+    } else {
+      // Restore button on failure
+      cloneBtn.textContent = originalText;
+      cloneBtn.disabled = false;
+    }
   }
 
   showDeleteRepoModal() {
@@ -1180,6 +1377,180 @@ class Nomacode {
         }
       }
     );
+  }
+
+  // ─── GitHub OAuth ───────────────────────────────────────
+
+  async loadGitHubAuthStatus() {
+    try {
+      const status = await API.auth.github.status();
+      this.githubAuth = status;
+    } catch (e) {
+      this.githubAuth = { authenticated: false };
+    }
+  }
+
+  async githubLogin() {
+    const section = document.getElementById('github-auth-section');
+    if (!section) return;
+
+    let clientId = this.settings?.githubClientId;
+
+    if (!clientId) {
+      // Show client ID input
+      section.innerHTML = `
+        <label class="form-label">GitHub OAuth Setup</label>
+        <p class="form-hint">Create a free OAuth App at
+          <a href="https://github.com/settings/developers" target="_blank" rel="noopener">github.com/settings/developers</a>
+          and enable Device Flow.
+        </p>
+        <div class="form-group">
+          <label class="form-label">Client ID</label>
+          <input type="text" id="github-client-id" class="form-input" placeholder="Ov23li...">
+        </div>
+        <button class="btn btn-primary" onclick="app.startDeviceFlow()">Continue</button>
+      `;
+      return;
+    }
+
+    this.startDeviceFlow(clientId);
+  }
+
+  async startDeviceFlow(clientIdOverride) {
+    const section = document.getElementById('github-auth-section');
+    if (!section) return;
+
+    // Clear any existing poll from a previous attempt
+    if (this.deviceFlowPollInterval) {
+      clearInterval(this.deviceFlowPollInterval);
+      this.deviceFlowPollInterval = null;
+    }
+
+    const clientId = clientIdOverride || document.getElementById('github-client-id')?.value.trim();
+    if (!clientId) {
+      this.toast('Enter a Client ID', 'error');
+      return;
+    }
+
+    // Save clientId for future use
+    if (!this.settings?.githubClientId || this.settings.githubClientId !== clientId) {
+      await API.settings.update({ githubClientId: clientId });
+      this.settings.githubClientId = clientId;
+    }
+
+    section.innerHTML = `
+      <label class="form-label">Connecting to GitHub...</label>
+      <div class="device-flow-box">
+        <div class="spinner"></div>
+      </div>
+    `;
+
+    try {
+      const result = await API.auth.github.startDeviceFlow(clientId);
+
+      section.innerHTML = `
+        <label class="form-label">Enter this code on GitHub</label>
+        <div class="device-flow-box">
+          <div class="user-code" id="device-user-code">${this.escapeHtml(result.user_code)}</div>
+          <button class="btn-copy" onclick="app.copyUserCode()" title="Copy code">Copy</button>
+        </div>
+        <a href="${this.escapeHtml(result.verification_uri)}" target="_blank" rel="noopener" class="device-flow-link">
+          Open ${this.escapeHtml(result.verification_uri)}
+        </a>
+        <div class="device-flow-status" id="device-flow-status">
+          <span class="spinner"></span> Waiting for authorization...
+        </div>
+      `;
+
+      // Auto-open verification URL
+      window.open(result.verification_uri, '_blank');
+
+      // Start polling
+      const interval = (result.interval || 5) * 1000;
+      const deviceCode = result.device_code;
+
+      const pollFn = async () => {
+        try {
+          const pollResult = await API.auth.github.pollToken(clientId, deviceCode);
+
+          if (pollResult.status === 'success') {
+            clearInterval(this.deviceFlowPollInterval);
+            this.deviceFlowPollInterval = null;
+            this.githubAuth = { authenticated: true, username: pollResult.username };
+
+            section.innerHTML = `
+              <label class="form-label">Private repos</label>
+              <div class="auth-connected">
+                <span class="auth-status-dot"></span>
+                Connected as <strong>@${this.escapeHtml(pollResult.username)}</strong>
+                <a href="#" class="auth-logout-link" onclick="event.preventDefault(); app.githubLogout()">Logout</a>
+              </div>
+            `;
+            this.toast(`Authenticated as @${pollResult.username}`, 'success');
+          } else if (pollResult.status === 'expired_token' || pollResult.status === 'access_denied') {
+            clearInterval(this.deviceFlowPollInterval);
+            this.deviceFlowPollInterval = null;
+            const statusEl = document.getElementById('device-flow-status');
+            if (statusEl) {
+              statusEl.innerHTML = `<span class="device-flow-error">${pollResult.status === 'expired_token' ? 'Code expired.' : 'Access denied.'} <a href="#" onclick="event.preventDefault(); app.githubLogin()">Try again</a></span>`;
+            }
+          } else if (pollResult.status === 'slow_down') {
+            // GitHub wants us to slow down — restart with longer interval
+            clearInterval(this.deviceFlowPollInterval);
+            this.deviceFlowPollInterval = setInterval(pollFn, interval + 5000);
+          }
+          // authorization_pending: keep polling
+        } catch (e) {
+          clearInterval(this.deviceFlowPollInterval);
+          this.deviceFlowPollInterval = null;
+          const statusEl = document.getElementById('device-flow-status');
+          if (statusEl) {
+            statusEl.innerHTML = `<span class="device-flow-error">Error: ${this.escapeHtml(e.message)} <a href="#" onclick="event.preventDefault(); app.githubLogin()">Retry</a></span>`;
+          }
+        }
+      };
+
+      this.deviceFlowPollInterval = setInterval(pollFn, interval);
+
+    } catch (e) {
+      section.innerHTML = `
+        <label class="form-label">Private repos</label>
+        <div class="device-flow-error">Failed to start: ${this.escapeHtml(e.message)}</div>
+        <button class="btn btn-github" onclick="app.githubLogin()">Try Again</button>
+      `;
+    }
+  }
+
+  async githubLogout() {
+    try {
+      await API.auth.github.logout();
+      this.githubAuth = { authenticated: false };
+      const section = document.getElementById('github-auth-section');
+      if (section) {
+        section.innerHTML = `
+          <label class="form-label">Private repos</label>
+          <button class="btn btn-github" onclick="app.githubLogin()">Login with GitHub</button>
+        `;
+      }
+      this.toast('GitHub disconnected', 'success');
+    } catch (e) {
+      this.toast(e.message, 'error');
+    }
+  }
+
+  copyUserCode() {
+    const codeEl = document.getElementById('device-user-code');
+    if (!codeEl) return;
+    navigator.clipboard.writeText(codeEl.textContent.trim()).then(() => {
+      this.toast('Code copied!', 'success');
+    }).catch(() => {
+      // Fallback: select text
+      const range = document.createRange();
+      range.selectNodeContents(codeEl);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+    });
   }
 
   // ─── Toast ───────────────────────────────────────────────
